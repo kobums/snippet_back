@@ -16,4 +16,6 @@ public interface SnippetRepository extends JpaRepository<Snippet, Long> {
     List<Snippet> findRandomSnippets(@Param("count") int count);
 
     List<Snippet> findByIdIn(List<Long> ids);
+
+    boolean existsByBookAndText(com.snippet.entity.Book book, String text);
 }
