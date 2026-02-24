@@ -3,7 +3,7 @@ CREATE TABLE book_tb (
   b_id           BIGINT        NOT NULL AUTO_INCREMENT COMMENT '책 고유 ID',
   b_isbn         VARCHAR(13)   NOT NULL                COMMENT '국제 표준 도서 번호',
   b_title        VARCHAR(200)  NOT NULL                COMMENT '책 제목',
-  b_author       VARCHAR(100)  NOT NULL                COMMENT '저자',
+  b_author       VARCHAR(200)  NOT NULL                COMMENT '저자',
   b_coverurl     VARCHAR(500)  NOT NULL                COMMENT '표지 이미지 URL',
   b_affiliateurl VARCHAR(500)  NOT NULL                COMMENT '제휴 마케팅 링크',
   b_createdate   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일',

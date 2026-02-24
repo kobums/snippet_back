@@ -25,7 +25,7 @@ public class Book {
     @Column(name = "b_title", nullable = false, length = 200)
     private String title;
 
-    @Column(name = "b_author", nullable = false, length = 100)
+    @Column(name = "b_author", nullable = false, length = 200)
     private String author;
 
     @Column(name = "b_coverurl", nullable = false, length = 500)
