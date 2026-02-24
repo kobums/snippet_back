@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  gymspring:
+    image: kobums/snippetback:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+    container_name: snippetback
+    ports:
+      - '8008:8008'
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    env_file:
+      - .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=Asia/Seoul
+    networks:
+      - snippetback-network
+    restart: unless-stopped
+
+networks:
+  snippetback-network:
+    driver: bridge
