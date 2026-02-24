@@ -28,7 +28,7 @@ affiliate:
     partner-id: ${YES24_PARTNER_ID:}
 
 server:
-  port: 8080
+  port: 8008
 
 logging:
   level:
