@@ -37,17 +37,30 @@ public class Book {
     @Column(name = "b_createdate", nullable = false, updatable = false)
     private LocalDateTime createDate;
 
+    @Column(name = "b_publisher", length = 100)
+    private String publisher;
+
+    @Column(name = "b_totalpage")
+    private Integer totalPage;
+
+    @Column(name = "b_publicationdate")
+    private java.time.LocalDate publicationDate;
+
     @PrePersist
     protected void onCreate() {
         this.createDate = LocalDateTime.now();
     }
 
     @Builder
-    public Book(String isbn, String title, String author, String coverUrl, String affiliateUrl) {
+    public Book(String isbn, String title, String author, String coverUrl, String affiliateUrl, String publisher,
+            Integer totalPage, java.time.LocalDate publicationDate) {
         this.isbn = isbn;
         this.title = title;
         this.author = author;
         this.coverUrl = coverUrl;
         this.affiliateUrl = affiliateUrl;
+        this.publisher = publisher;
+        this.totalPage = totalPage;
+        this.publicationDate = publicationDate;
     }
 }
