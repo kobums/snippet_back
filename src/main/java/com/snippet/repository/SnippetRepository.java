@@ -18,4 +18,8 @@ public interface SnippetRepository extends JpaRepository<Snippet, Long> {
     List<Snippet> findByIdIn(List<Long> ids);
 
     boolean existsByBookAndText(com.snippet.entity.Book book, String text);
+
+    List<Snippet> findByBookOrderByCreateDateDesc(com.snippet.entity.Book book);
+
+    List<Snippet> findByBookAndTypeOrderByCreateDateDesc(com.snippet.entity.Book book, String type);
 }
