@@ -17,20 +17,58 @@ public class BookSearchService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${NLK_API_KEY:}")
+    @Value("${NATIONAL_LIBRARY_KEY:}")
     private String nlkApiKey;
 
     public List<BookSearchDto> searchBooks(String query) {
-        // MVP: if NLK API key is empty, return mock data for testing
         if (nlkApiKey == null || nlkApiKey.isEmpty()) {
             log.info("NLK API key is empty. Returning mock search results for query: {}", query);
             return getMockResults(query);
         }
 
-        // Implementation of NLK API (국립중앙도서관 서지정보 API)
-        // Note: The actual NLK API uses XML response, requiring XML parsing.
-        // For the purpose of moving forward quickly without the exact API structure,
-        // we'll leave a mock implementation for now until real integration is done.
+        try {
+            String url = org.springframework.web.util.UriComponentsBuilder
+                    .fromUriString("https://www.nl.go.kr/seoji/SearchApi.do")
+                    .queryParam("cert_key", nlkApiKey)
+                    .queryParam("result_style", "json")
+                    .queryParam("page_no", 1)
+                    .queryParam("page_size", 10)
+                    .queryParam("title", query)
+                    .build(false)
+                    .toUriString();
+
+            com.fasterxml.jackson.databind.JsonNode response = restTemplate.getForObject(url,
+                    com.fasterxml.jackson.databind.JsonNode.class);
+            List<BookSearchDto> results = new ArrayList<>();
+
+            if (response != null && response.has("docs")) {
+                for (com.fasterxml.jackson.databind.JsonNode doc : response.get("docs")) {
+                    Integer totalPage = null;
+                    String pageStr = doc.path("PAGE").asText("").replaceAll("[^0-9]", "");
+                    if (!pageStr.isEmpty()) {
+                        try {
+                            totalPage = Integer.parseInt(pageStr);
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
+
+                    results.add(BookSearchDto.builder()
+                            .title(doc.path("TITLE").asText(""))
+                            .author(doc.path("AUTHOR").asText(""))
+                            .publisher(doc.path("PUBLISHER").asText(""))
+                            .pubDate(doc.path("PUBLISH_PREDATE").asText(""))
+                            .isbn(doc.path("EA_ISBN").asText(""))
+                            .coverUrl(doc.path("TITLE_URL").asText(""))
+                            .totalPage(totalPage)
+                            .build());
+                }
+                return results;
+            }
+        } catch (Exception e) {
+            log.error("Error calling NLK API for query: {}", query, e);
+        }
+
+        // Fallback to mock results on error or empty response
         return getMockResults(query);
     }
 
@@ -43,6 +81,7 @@ public class BookSearchService {
                 .pubDate("2026-01-01")
                 .isbn("9781234567890")
                 .coverUrl("https://via.placeholder.com/150")
+                .totalPage(300)
                 .build());
         return results;
     }

@@ -12,4 +12,5 @@ public class BookSearchDto {
     private String pubDate;
     private String isbn;
     private String coverUrl;
+    private Integer totalPage;
 }

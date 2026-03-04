@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
 @Service
@@ -24,12 +25,19 @@ public class LibraryService {
         // 1. Check if Book exists by ISBN, otherwise save new Book
         Book book = bookRepository.findByIsbn(request.getIsbn())
                 .orElseGet(() -> {
-                    LocalDate pubDate = null;
+                    LocalDate pubDate = LocalDate.of(1970, 1, 1);
                     if (request.getPubDate() != null && !request.getPubDate().isEmpty()) {
                         try {
-                            pubDate = LocalDate.parse(request.getPubDate());
+                            // PUBLISH_PREDATE는 yyyyMMdd 형식 (예: 20220509)
+                            pubDate = LocalDate.parse(request.getPubDate(),
+                                    DateTimeFormatter.ofPattern("yyyyMMdd"));
                         } catch (DateTimeParseException e) {
-                            // Ignore parsing error for MVP
+                            try {
+                                // yyyy-MM-dd 형식도 시도
+                                pubDate = LocalDate.parse(request.getPubDate());
+                            } catch (DateTimeParseException e2) {
+                                // 파싱 실패 시 기본값 유지
+                            }
                         }
                     }
 
@@ -39,6 +47,7 @@ public class LibraryService {
                             .author(request.getAuthor() != null ? request.getAuthor() : "Unknown")
                             .publisher(request.getPublisher())
                             .publicationDate(pubDate)
+                            .totalPage(request.getTotalPage())
                             .coverUrl(request.getCoverUrl() != null ? request.getCoverUrl() : "")
                             .affiliateUrl("") // Will be generated later or by affiliate service
                             .build();

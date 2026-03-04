@@ -12,5 +12,6 @@ public class LibraryAddRequestDto {
     private String pubDate;
     private String isbn;
     private String coverUrl;
+    private Integer totalPage;
     private String status; // wish, reading, waiting
 }
