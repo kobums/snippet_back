@@ -19,6 +19,7 @@ public class LibraryService {
 
     private final BookRepository bookRepository;
     private final UserBookRepository userBookRepository;
+    private final BookSearchService bookSearchService;
 
     @Transactional
     public Long addBookToLibrary(String userId, LibraryAddRequestDto request) {
@@ -41,13 +42,34 @@ public class LibraryService {
                         }
                     }
 
+                    String parsedAuthor = "Unknown";
+                    if (request.getAuthor() != null && !request.getAuthor().trim().isEmpty()) {
+                        String fullAuthor = request.getAuthor();
+                        // "저자: " 로 시작하는 첫 번째 항목 파싱
+                        // (예: "저자: 헨리 데이비드 소로, 옮긴이: 강승영" -> "헨리 데이비드 소로")
+                        String[] parts = fullAuthor.split(",");
+                        if (parts.length > 0) {
+                            String firstPart = parts[0].trim();
+                            if (firstPart.startsWith("저자:")) {
+                                parsedAuthor = firstPart.substring(3).trim();
+                            } else {
+                                parsedAuthor = firstPart;
+                            }
+                        }
+                    }
+
+                    int pages = (request.getTotalPage() != null) ? request.getTotalPage() : 0;
+                    if (pages == 0 && request.getIsbn() != null && !request.getIsbn().isEmpty()) {
+                        pages = bookSearchService.getBookPageFromAladin(request.getIsbn());
+                    }
+
                     Book newBook = Book.builder()
-                            .isbn(request.getIsbn())
-                            .title(request.getTitle())
-                            .author(request.getAuthor() != null ? request.getAuthor() : "Unknown")
-                            .publisher(request.getPublisher())
+                            .isbn(request.getIsbn() != null && !request.getIsbn().isEmpty() ? request.getIsbn() : "")
+                            .title(request.getTitle() != null ? request.getTitle() : "Unknown")
+                            .author(parsedAuthor)
+                            .publisher(request.getPublisher() != null ? request.getPublisher() : "")
                             .publicationDate(pubDate)
-                            .totalPage(request.getTotalPage())
+                            .totalPage(pages)
                             .coverUrl(request.getCoverUrl() != null ? request.getCoverUrl() : "")
                             .affiliateUrl("") // Will be generated later or by affiliate service
                             .build();
