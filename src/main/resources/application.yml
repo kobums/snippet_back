@@ -34,3 +34,6 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.type.descriptor.sql.BasicBinder: trace
+
+aladin:
+  api-key: ${ALADIN_API_KEY:}
