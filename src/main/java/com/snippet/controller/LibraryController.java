@@ -48,11 +48,35 @@ public class LibraryController {
         return ResponseEntity.ok().build();
     }
 
+    @PatchMapping("/{userBookId}/type")
+    public ResponseEntity<Void> updateType(
+            @PathVariable Long userBookId,
+            @RequestBody com.snippet.dto.TypeUpdateRequestDto requestDto) {
+        libraryService.updateType(userBookId, TEMP_USER_ID, requestDto.getType());
+        return ResponseEntity.ok().build();
+    }
+
     @PatchMapping("/{userBookId}/progress")
     public ResponseEntity<Void> updateProgress(
             @PathVariable Long userBookId,
             @RequestBody com.snippet.dto.ProgressUpdateRequestDto requestDto) {
         libraryService.updateProgress(userBookId, TEMP_USER_ID, requestDto.getReadPage());
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{userBookId}/startdate")
+    public ResponseEntity<Void> updateStartDate(
+            @PathVariable Long userBookId,
+            @RequestBody com.snippet.dto.DateUpdateRequestDto requestDto) {
+        libraryService.updateStartDate(userBookId, TEMP_USER_ID, requestDto.getStartDate());
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{userBookId}/enddate")
+    public ResponseEntity<Void> updateEndDate(
+            @PathVariable Long userBookId,
+            @RequestBody com.snippet.dto.DateUpdateRequestDto requestDto) {
+        libraryService.updateEndDate(userBookId, TEMP_USER_ID, requestDto.getEndDate());
         return ResponseEntity.ok().build();
     }
 }

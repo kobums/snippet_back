@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
@@ -79,11 +80,39 @@ public class LibraryService {
         // 2. Check if UserBook already exists for this user and book
         UserBook userBook = userBookRepository.findByUserIdAndBook(userId, book)
                 .orElseGet(() -> {
+                    LocalDateTime startDate = LocalDateTime.now();
+                    LocalDateTime endDate = LocalDateTime.now();
+                    if (request.getStartDate() != null && !request.getStartDate().isEmpty()) {
+                        try {
+                            if (request.getStartDate().contains("T") || request.getStartDate().contains(":")) {
+                                startDate = LocalDateTime.parse(request.getStartDate());
+                            } else {
+                                startDate = LocalDate.parse(request.getStartDate()).atStartOfDay();
+                            }
+                        } catch (DateTimeParseException e) {
+                            // ignore
+                        }
+                    }
+                    if (request.getEndDate() != null && !request.getEndDate().isEmpty()) {
+                        try {
+                            if (request.getEndDate().contains("T") || request.getEndDate().contains(":")) {
+                                endDate = LocalDateTime.parse(request.getEndDate());
+                            } else {
+                                endDate = LocalDate.parse(request.getEndDate()).atStartOfDay();
+                            }
+                        } catch (DateTimeParseException e) {
+                            // ignore
+                        }
+                    }
+
                     UserBook newUserBook = UserBook.builder()
                             .userId(userId)
                             .book(book)
-                            .status(request.getStatus() != null ? request.getStatus() : "wish")
+                            .type(request.getType() != null ? request.getType() : "wish")
+                            .status(request.getStatus() != null ? request.getStatus() : "waiting")
                             .readPage(0)
+                            .startDate(startDate)
+                            .endDate(endDate)
                             .build();
                     return userBookRepository.save(newUserBook);
                 });
@@ -104,6 +133,18 @@ public class LibraryService {
     }
 
     @Transactional
+    public void updateType(Long userBookId, String userId, String type) {
+        UserBook userBook = userBookRepository.findById(userBookId)
+                .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
+
+        if (!userBook.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Unauthorized");
+        }
+
+        userBook.updateType(type);
+    }
+
+    @Transactional
     public void updateProgress(Long userBookId, String userId, Integer readPage) {
         UserBook userBook = userBookRepository.findById(userBookId)
                 .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
@@ -113,6 +154,54 @@ public class LibraryService {
         }
 
         userBook.updateReadPage(readPage);
+    }
+
+    @Transactional
+    public void updateStartDate(Long userBookId, String userId, String startDateStr) {
+        UserBook userBook = userBookRepository.findById(userBookId)
+                .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
+
+        if (!userBook.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Unauthorized");
+        }
+
+        if (startDateStr != null && !startDateStr.isEmpty()) {
+            try {
+                LocalDateTime startDate;
+                if (startDateStr.contains("T") || startDateStr.contains(":")) {
+                    startDate = LocalDateTime.parse(startDateStr);
+                } else {
+                    startDate = LocalDate.parse(startDateStr).atStartOfDay();
+                }
+                userBook.updateStartDate(startDate);
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException("Invalid date format");
+            }
+        }
+    }
+
+    @Transactional
+    public void updateEndDate(Long userBookId, String userId, String endDateStr) {
+        UserBook userBook = userBookRepository.findById(userBookId)
+                .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
+
+        if (!userBook.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Unauthorized");
+        }
+
+        if (endDateStr != null && !endDateStr.isEmpty()) {
+            try {
+                LocalDateTime endDate;
+                if (endDateStr.contains("T") || endDateStr.contains(":")) {
+                    endDate = LocalDateTime.parse(endDateStr);
+                } else {
+                    endDate = LocalDate.parse(endDateStr).atStartOfDay();
+                }
+                userBook.updateEndDate(endDate);
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException("Invalid date format");
+            }
+        }
     }
 
     @Transactional(readOnly = true)
