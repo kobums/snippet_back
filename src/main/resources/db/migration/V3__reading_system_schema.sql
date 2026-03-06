@@ -10,8 +10,10 @@ CREATE TABLE userbook_tb (
   ub_id         BIGINT       NOT NULL AUTO_INCREMENT COMMENT '서재 아이템 고유 ID',
   ub_userid     VARCHAR(100) NOT NULL                COMMENT '사용자 식별자 (임시/로컬스토리지용)',
   ub_book       BIGINT       NOT NULL                COMMENT '책 FK (book_tb.b_id)',
-  ub_status     VARCHAR(20)  NOT NULL DEFAULT 'wish' COMMENT '상태 (wish, waiting, reading, completed, dropped)',
+  ub_status     VARCHAR(20)  NOT NULL DEFAULT 'wish' COMMENT '도서 상태 (wish, reading, done)',
   ub_readpage   INT          NOT NULL DEFAULT 0      COMMENT '읽은 페이지 수 (진도율)',
+  ub_startdate  DATE         NOT NULL DEFAULT CURRENT_DATE COMMENT '읽기 시작일',
+  ub_enddate    DATE         NOT NULL DEFAULT CURRENT_DATE COMMENT '읽기 종료일',
   ub_createdate DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일',
   ub_updatedate DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일',
 
