@@ -14,10 +14,13 @@ public class UserBookDto {
     private String title;
     private String author;
     private String coverUrl;
+    private String type;
     private String status;
     private Integer readPage;
     private Integer totalPage;
     private LocalDateTime createDate;
+    private LocalDateTime startDate;
+    private LocalDateTime endDate;
 
     public static UserBookDto from(UserBook userBook) {
         return UserBookDto.builder()
@@ -26,10 +29,13 @@ public class UserBookDto {
                 .title(userBook.getBook().getTitle())
                 .author(userBook.getBook().getAuthor())
                 .coverUrl(userBook.getBook().getCoverUrl())
+                .type(userBook.getType())
                 .status(userBook.getStatus())
                 .readPage(userBook.getReadPage())
                 .totalPage(userBook.getBook().getTotalPage() != null ? userBook.getBook().getTotalPage() : 0)
                 .createDate(userBook.getCreateDate())
+                .startDate(userBook.getStartDate())
+                .endDate(userBook.getEndDate())
                 .build();
     }
 }

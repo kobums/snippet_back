@@ -28,6 +28,9 @@ public class UserBook {
     @JoinColumn(name = "ub_book", nullable = false)
     private Book book;
 
+    @Column(name = "ub_type", nullable = false, length = 20)
+    private String type;
+
     @Column(name = "ub_status", nullable = false, length = 20)
     private String status;
 
@@ -40,14 +43,26 @@ public class UserBook {
     @Column(name = "ub_updatedate", nullable = false)
     private LocalDateTime updateDate;
 
+    @Column(name = "ub_startdate", nullable = false)
+    private LocalDateTime startDate;
+
+    @Column(name = "ub_enddate", nullable = false)
+    private LocalDateTime endDate;
+
     @PrePersist
     protected void onCreate() {
         this.createDate = LocalDateTime.now();
         this.updateDate = LocalDateTime.now();
+        if (this.type == null)
+            this.type = "wish";
         if (this.status == null)
-            this.status = "wish";
+            this.status = "waiting";
         if (this.readPage == null)
             this.readPage = 0;
+        if (this.startDate == null)
+            this.startDate = LocalDateTime.now();
+        if (this.endDate == null)
+            this.endDate = LocalDateTime.now();
     }
 
     @PreUpdate
@@ -56,11 +71,19 @@ public class UserBook {
     }
 
     @Builder
-    public UserBook(String userId, Book book, String status, Integer readPage) {
+    public UserBook(String userId, Book book, String type, String status, Integer readPage, LocalDateTime startDate,
+            LocalDateTime endDate) {
         this.userId = userId;
         this.book = book;
+        this.type = type;
         this.status = status;
         this.readPage = readPage;
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
+    public void updateType(String type) {
+        this.type = type;
     }
 
     public void updateStatus(String status) {
@@ -69,5 +92,13 @@ public class UserBook {
 
     public void updateReadPage(Integer readPage) {
         this.readPage = readPage;
+    }
+
+    public void updateStartDate(LocalDateTime startDate) {
+        this.startDate = startDate;
+    }
+
+    public void updateEndDate(LocalDateTime endDate) {
+        this.endDate = endDate;
     }
 }

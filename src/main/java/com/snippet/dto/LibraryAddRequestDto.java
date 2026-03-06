@@ -13,5 +13,8 @@ public class LibraryAddRequestDto {
     private String isbn;
     private String coverUrl;
     private Integer totalPage;
-    private String status; // wish, reading, waiting
+    private String type; // wish, borrow, have
+    private String status; // waiting, reading, completed, dropped
+    private String startDate; // yyyy-MM-dd or yyyy-MM-ddTHH:mm:ss
+    private String endDate; // yyyy-MM-dd or yyyy-MM-ddTHH:mm:ss
 }
