@@ -10,13 +10,14 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/books/{bookId}/records")
 @RequiredArgsConstructor
 public class RecordController {
 
     private final RecordService recordService;
 
-    @PostMapping
+    private static final String TEMP_USER_ID = "test_user_1";
+
+    @PostMapping("/api/books/{bookId}/records")
     public ResponseEntity<Long> addRecord(
             @PathVariable Long bookId,
             @RequestBody RecordAddRequestDto requestDto) {
@@ -24,11 +25,18 @@ public class RecordController {
         return ResponseEntity.ok(recordId);
     }
 
-    @GetMapping
+    @GetMapping("/api/books/{bookId}/records")
     public ResponseEntity<List<RecordDto>> getRecords(
             @PathVariable Long bookId,
             @RequestParam(required = false) String type) {
         List<RecordDto> records = recordService.getRecordsByBook(bookId, type);
+        return ResponseEntity.ok(records);
+    }
+
+    @GetMapping("/api/records/monthly")
+    public ResponseEntity<List<RecordDto>> getMonthlyRecords(
+            @RequestParam String type) {
+        List<RecordDto> records = recordService.getMonthlyRecords(TEMP_USER_ID, type);
         return ResponseEntity.ok(records);
     }
 }

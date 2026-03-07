@@ -4,12 +4,17 @@ import com.snippet.dto.RecordAddRequestDto;
 import com.snippet.dto.RecordDto;
 import com.snippet.entity.Book;
 import com.snippet.entity.Snippet;
+import com.snippet.entity.UserBook;
 import com.snippet.repository.BookRepository;
 import com.snippet.repository.SnippetRepository;
+import com.snippet.repository.UserBookRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,6 +23,7 @@ import java.util.stream.Collectors;
 public class RecordService {
 
     private final BookRepository bookRepository;
+    private final UserBookRepository userBookRepository;
     private final SnippetRepository snippetRepository; // Acts as RecordRepository
 
     @Transactional
@@ -47,6 +53,27 @@ public class RecordService {
         } else {
             records = snippetRepository.findByBookOrderByCreateDateDesc(book);
         }
+
+        return records.stream()
+                .map(RecordDto::from)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<RecordDto> getMonthlyRecords(String userId, String type) {
+        List<UserBook> userBooks = userBookRepository.findByUserId(userId);
+        if (userBooks.isEmpty()) return Collections.emptyList();
+
+        List<Book> books = userBooks.stream()
+                .map(UserBook::getBook)
+                .collect(Collectors.toList());
+
+        YearMonth currentMonth = YearMonth.now();
+        LocalDateTime start = currentMonth.atDay(1).atStartOfDay();
+        LocalDateTime end = currentMonth.atEndOfMonth().atTime(23, 59, 59);
+
+        List<Snippet> records = snippetRepository
+                .findByBookInAndTypeAndCreateDateBetweenOrderByCreateDateDesc(books, type, start, end);
 
         return records.stream()
                 .map(RecordDto::from)

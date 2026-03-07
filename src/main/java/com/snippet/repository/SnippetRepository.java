@@ -1,10 +1,12 @@
 package com.snippet.repository;
 
+import com.snippet.entity.Book;
 import com.snippet.entity.Snippet;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface SnippetRepository extends JpaRepository<Snippet, Long> {
@@ -22,4 +24,7 @@ public interface SnippetRepository extends JpaRepository<Snippet, Long> {
     List<Snippet> findByBookOrderByCreateDateDesc(com.snippet.entity.Book book);
 
     List<Snippet> findByBookAndTypeOrderByCreateDateDesc(com.snippet.entity.Book book, String type);
+
+    List<Snippet> findByBookInAndTypeAndCreateDateBetweenOrderByCreateDateDesc(
+            List<Book> books, String type, LocalDateTime start, LocalDateTime end);
 }
