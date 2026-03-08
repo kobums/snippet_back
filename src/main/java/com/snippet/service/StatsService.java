@@ -16,15 +16,15 @@ public class StatsService {
     private final UserBookRepository userBookRepository;
 
     @Transactional(readOnly = true)
-    public StatsDto getUserStats(String userId) {
+    public StatsDto getUserStats(Long userId) {
         LocalDateTime startOfMonth = YearMonth.now().atDay(1).atStartOfDay();
         LocalDateTime endOfMonth = YearMonth.now().atEndOfMonth().atTime(23, 59, 59);
 
-        long monthlyCompleted = userBookRepository.countByUserIdAndStatusAndUpdateDateBetween(
+        long monthlyCompleted = userBookRepository.countByUser_IdAndStatusAndUpdateDateBetween(
                 userId, "completed", startOfMonth, endOfMonth);
 
-        long currentlyReading = userBookRepository.countByUserIdAndStatus(userId, "reading");
-        long totalCompleted = userBookRepository.countByUserIdAndStatus(userId, "completed");
+        long currentlyReading = userBookRepository.countByUser_IdAndStatus(userId, "reading");
+        long totalCompleted = userBookRepository.countByUser_IdAndStatus(userId, "completed");
 
         return StatsDto.builder()
                 .monthlyCompletedCount(monthlyCompleted)

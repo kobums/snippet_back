@@ -18,9 +18,8 @@ public class LibraryController {
     private final BookSearchService bookSearchService;
     private final LibraryService libraryService;
 
-    // TODO: Get actual User ID from session or token (Hardcoded "test_user_1" for
-    // MVP)
-    private static final String TEMP_USER_ID = "test_user_1";
+    // TODO: Get actual User ID from session or token (Hardcoded 1L for MVP)
+    private static final Long TEMP_USER_ID = 1L;
 
     @GetMapping("/search")
     public ResponseEntity<List<BookSearchDto>> searchBooks(@RequestParam String query) {

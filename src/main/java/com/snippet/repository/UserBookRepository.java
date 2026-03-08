@@ -13,20 +13,20 @@ import java.util.Optional;
 
 @Repository
 public interface UserBookRepository extends JpaRepository<UserBook, Long> {
-    Optional<UserBook> findByUserIdAndBook(String userId, Book book);
+    Optional<UserBook> findByUser_IdAndBook(Long userId, Book book);
 
-    List<UserBook> findByUserId(String userId);
+    List<UserBook> findByUser_Id(Long userId);
 
-    List<UserBook> findByUserIdOrderByUpdateDateDesc(String userId);
+    List<UserBook> findByUser_IdOrderByUpdateDateDesc(Long userId);
 
-    @Query("SELECT COUNT(ub) FROM UserBook ub WHERE ub.userId = :userId AND ub.status = :status AND ub.updateDate >= :startDate AND ub.updateDate <= :endDate")
-    long countByUserIdAndStatusAndUpdateDateBetween(
-            @Param("userId") String userId,
+    @Query("SELECT COUNT(ub) FROM UserBook ub WHERE ub.user.id = :userId AND ub.status = :status AND ub.updateDate >= :startDate AND ub.updateDate <= :endDate")
+    long countByUser_IdAndStatusAndUpdateDateBetween(
+            @Param("userId") Long userId,
             @Param("status") String status,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
 
-    long countByUserIdAndStatus(String userId, String status);
+    long countByUser_IdAndStatus(Long userId, String status);
 
-    List<UserBook> findByUserIdAndStatus(String userId, String status);
+    List<UserBook> findByUser_IdAndStatus(Long userId, String status);
 }

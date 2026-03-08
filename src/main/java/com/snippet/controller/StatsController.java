@@ -17,7 +17,7 @@ public class StatsController {
 
     @GetMapping
     public ResponseEntity<StatsDto> getStats() {
-        String mockUserId = "testUser123"; // Using mock user for MVP
+        Long mockUserId = 1L; // Using mock user for MVP
         StatsDto stats = statsService.getUserStats(mockUserId);
         return ResponseEntity.ok(stats);
     }

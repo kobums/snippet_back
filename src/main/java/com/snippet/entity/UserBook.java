@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "userbook_tb", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_userbook_user_book", columnNames = { "ub_userid", "ub_book" })
+        @UniqueConstraint(name = "uk_userbook_user_book", columnNames = { "ub_user", "ub_book" })
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -21,8 +21,9 @@ public class UserBook {
     @Column(name = "ub_id")
     private Long id;
 
-    @Column(name = "ub_userid", nullable = false, length = 100)
-    private String userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ub_user", nullable = false)
+    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ub_book", nullable = false)
@@ -71,9 +72,9 @@ public class UserBook {
     }
 
     @Builder
-    public UserBook(String userId, Book book, String type, String status, Integer readPage, LocalDateTime startDate,
+    public UserBook(User user, Book book, String type, String status, Integer readPage, LocalDateTime startDate,
             LocalDateTime endDate) {
-        this.userId = userId;
+        this.user = user;
         this.book = book;
         this.type = type;
         this.status = status;

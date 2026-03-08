@@ -5,6 +5,8 @@ import com.snippet.entity.Book;
 import com.snippet.entity.UserBook;
 import com.snippet.repository.BookRepository;
 import com.snippet.repository.UserBookRepository;
+import com.snippet.repository.UserRepository;
+import com.snippet.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,10 +22,11 @@ public class LibraryService {
 
     private final BookRepository bookRepository;
     private final UserBookRepository userBookRepository;
+    private final UserRepository userRepository;
     private final BookSearchService bookSearchService;
 
     @Transactional
-    public Long addBookToLibrary(String userId, LibraryAddRequestDto request) {
+    public Long addBookToLibrary(Long userId, LibraryAddRequestDto request) {
         // 1. Check if Book exists by ISBN, otherwise save new Book
         Book book = bookRepository.findByIsbn(request.getIsbn())
                 .orElseGet(() -> {
@@ -78,7 +81,7 @@ public class LibraryService {
                 });
 
         // 2. Check if UserBook already exists for this user and book
-        UserBook userBook = userBookRepository.findByUserIdAndBook(userId, book)
+        UserBook userBook = userBookRepository.findByUser_IdAndBook(userId, book)
                 .orElseGet(() -> {
                     LocalDateTime startDate = LocalDateTime.now();
                     LocalDateTime endDate = LocalDateTime.now();
@@ -105,8 +108,11 @@ public class LibraryService {
                         }
                     }
 
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+
                     UserBook newUserBook = UserBook.builder()
-                            .userId(userId)
+                            .user(user)
                             .book(book)
                             .type(request.getType() != null ? request.getType() : "wish")
                             .status(request.getStatus() != null ? request.getStatus() : "waiting")
@@ -121,11 +127,11 @@ public class LibraryService {
     }
 
     @Transactional
-    public void updateStatus(Long userBookId, String userId, String status) {
+    public void updateStatus(Long userBookId, Long userId, String status) {
         UserBook userBook = userBookRepository.findById(userBookId)
                 .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
 
-        if (!userBook.getUserId().equals(userId)) {
+        if (!userBook.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("Unauthorized");
         }
 
@@ -133,11 +139,11 @@ public class LibraryService {
     }
 
     @Transactional
-    public void updateType(Long userBookId, String userId, String type) {
+    public void updateType(Long userBookId, Long userId, String type) {
         UserBook userBook = userBookRepository.findById(userBookId)
                 .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
 
-        if (!userBook.getUserId().equals(userId)) {
+        if (!userBook.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("Unauthorized");
         }
 
@@ -145,11 +151,11 @@ public class LibraryService {
     }
 
     @Transactional
-    public void updateProgress(Long userBookId, String userId, Integer readPage) {
+    public void updateProgress(Long userBookId, Long userId, Integer readPage) {
         UserBook userBook = userBookRepository.findById(userBookId)
                 .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
 
-        if (!userBook.getUserId().equals(userId)) {
+        if (!userBook.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("Unauthorized");
         }
 
@@ -157,11 +163,11 @@ public class LibraryService {
     }
 
     @Transactional
-    public void updateStartDate(Long userBookId, String userId, String startDateStr) {
+    public void updateStartDate(Long userBookId, Long userId, String startDateStr) {
         UserBook userBook = userBookRepository.findById(userBookId)
                 .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
 
-        if (!userBook.getUserId().equals(userId)) {
+        if (!userBook.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("Unauthorized");
         }
 
@@ -181,11 +187,11 @@ public class LibraryService {
     }
 
     @Transactional
-    public void updateEndDate(Long userBookId, String userId, String endDateStr) {
+    public void updateEndDate(Long userBookId, Long userId, String endDateStr) {
         UserBook userBook = userBookRepository.findById(userBookId)
                 .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
 
-        if (!userBook.getUserId().equals(userId)) {
+        if (!userBook.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("Unauthorized");
         }
 
@@ -205,8 +211,8 @@ public class LibraryService {
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<com.snippet.dto.UserBookDto> getUserBooks(String userId) {
-        return userBookRepository.findByUserId(userId).stream()
+    public java.util.List<com.snippet.dto.UserBookDto> getUserBooks(Long userId) {
+        return userBookRepository.findByUser_Id(userId).stream()
                 .map(com.snippet.dto.UserBookDto::from)
                 .collect(java.util.stream.Collectors.toList());
     }

@@ -15,7 +15,7 @@ public class RecordController {
 
     private final RecordService recordService;
 
-    private static final String TEMP_USER_ID = "test_user_1";
+    private static final Long TEMP_USER_ID = 1L;
 
     @PostMapping("/api/books/{bookId}/records")
     public ResponseEntity<Long> addRecord(
