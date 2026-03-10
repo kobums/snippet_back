@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 public class RecordDto {
     private Long id;
     private Long bookId;
+    private String bookTitle;
     private String type;
     private String text;
     private String tag;
@@ -21,6 +22,7 @@ public class RecordDto {
         return RecordDto.builder()
                 .id(snippet.getId())
                 .bookId(snippet.getBook().getId())
+                .bookTitle(snippet.getBook().getTitle())
                 .type(snippet.getType())
                 .text(snippet.getText())
                 .tag(snippet.getTag())

@@ -21,7 +21,7 @@ public class RecordController {
     public ResponseEntity<Long> addRecord(
             @PathVariable Long bookId,
             @RequestBody RecordAddRequestDto requestDto) {
-        Long recordId = recordService.addRecord(bookId, requestDto);
+        Long recordId = recordService.addRecord(TEMP_USER_ID, bookId, requestDto);
         return ResponseEntity.ok(recordId);
     }
 

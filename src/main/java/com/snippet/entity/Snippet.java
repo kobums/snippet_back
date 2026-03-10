@@ -24,6 +24,10 @@ public class Snippet { // Renaming to ReadingRecord might break existing code, k
     @JoinColumn(name = "r_book", nullable = false)
     private Book book;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "r_user", nullable = false)
+    private User user;
+
     @Column(name = "r_type", nullable = false, length = 20)
     private String type; // "snippet", "diary", "review"
 
@@ -48,8 +52,9 @@ public class Snippet { // Renaming to ReadingRecord might break existing code, k
     }
 
     @Builder
-    public Snippet(Book book, String type, String text, String tag, Integer relatedPage) {
+    public Snippet(Book book, User user, String type, String text, String tag, Integer relatedPage) {
         this.book = book;
+        this.user = user;
         this.type = type;
         this.text = text;
         this.tag = tag;

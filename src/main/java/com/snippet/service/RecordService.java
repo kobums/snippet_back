@@ -4,17 +4,16 @@ import com.snippet.dto.RecordAddRequestDto;
 import com.snippet.dto.RecordDto;
 import com.snippet.entity.Book;
 import com.snippet.entity.Snippet;
-import com.snippet.entity.UserBook;
+import com.snippet.entity.User;
 import com.snippet.repository.BookRepository;
 import com.snippet.repository.SnippetRepository;
-import com.snippet.repository.UserBookRepository;
+import com.snippet.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,16 +22,19 @@ import java.util.stream.Collectors;
 public class RecordService {
 
         private final BookRepository bookRepository;
-        private final UserBookRepository userBookRepository;
-        private final SnippetRepository snippetRepository; // Acts as RecordRepository
+        private final UserRepository userRepository;
+        private final SnippetRepository snippetRepository;
 
         @Transactional
-        public Long addRecord(Long bookId, RecordAddRequestDto requestDto) {
+        public Long addRecord(Long userId, Long bookId, RecordAddRequestDto requestDto) {
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new IllegalArgumentException("User not found id: " + userId));
                 Book book = bookRepository.findById(bookId)
                                 .orElseThrow(() -> new IllegalArgumentException("Book not found id: " + bookId));
 
                 Snippet record = Snippet.builder()
                                 .book(book)
+                                .user(user)
                                 .type(requestDto.getType())
                                 .text(requestDto.getText())
                                 .tag(requestDto.getTag())
@@ -61,20 +63,15 @@ public class RecordService {
 
         @Transactional(readOnly = true)
         public List<RecordDto> getMonthlyRecords(Long userId, String type) {
-                List<UserBook> userBooks = userBookRepository.findByUser_Id(userId);
-                if (userBooks.isEmpty())
-                        return Collections.emptyList();
-
-                List<Book> books = userBooks.stream()
-                                .map(UserBook::getBook)
-                                .collect(Collectors.toList());
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new IllegalArgumentException("User not found id: " + userId));
 
                 YearMonth currentMonth = YearMonth.now();
                 LocalDateTime start = currentMonth.atDay(1).atStartOfDay();
                 LocalDateTime end = currentMonth.atEndOfMonth().atTime(23, 59, 59);
 
                 List<Snippet> records = snippetRepository
-                                .findByBookInAndTypeAndCreateDateBetweenOrderByCreateDateDesc(books, type, start, end);
+                                .findByUserAndTypeAndCreateDateBetweenOrderByCreateDateDesc(user, type, start, end);
 
                 return records.stream()
                                 .map(RecordDto::from)
