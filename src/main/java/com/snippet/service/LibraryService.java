@@ -136,6 +136,16 @@ public class LibraryService {
         }
 
         userBook.updateStatus(status);
+        
+        if ("completed".equals(status) || "dropped".equals(status)) {
+            userBook.updateEndDate(LocalDateTime.now());
+            if ("completed".equals(status)) {
+                Integer totalPage = userBook.getBook().getTotalPage();
+                if (totalPage != null) {
+                    userBook.updateReadPage(totalPage);
+                }
+            }
+        }
     }
 
     @Transactional
