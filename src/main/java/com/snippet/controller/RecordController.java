@@ -8,8 +8,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
+@RequestMapping("/api/records")
 @RequiredArgsConstructor
 public class RecordController {
 
@@ -17,26 +19,63 @@ public class RecordController {
 
     private static final Long TEMP_USER_ID = 1L;
 
-    @PostMapping("/api/books/{bookId}/records")
-    public ResponseEntity<Long> addRecord(
-            @PathVariable Long bookId,
-            @RequestBody RecordAddRequestDto requestDto) {
-        Long recordId = recordService.addRecord(TEMP_USER_ID, bookId, requestDto);
+    @GetMapping
+    public ResponseEntity<List<RecordDto>> getAll() {
+        return ResponseEntity.ok(recordService.findAll());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<RecordDto> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(recordService.findById(id));
+    }
+
+    @PostMapping
+    public ResponseEntity<Long> create(@RequestBody RecordAddRequestDto requestDto) {
+        Long recordId = recordService.create(TEMP_USER_ID, requestDto);
         return ResponseEntity.ok(recordId);
     }
 
-    @GetMapping("/api/books/{bookId}/records")
-    public ResponseEntity<List<RecordDto>> getRecords(
-            @PathVariable Long bookId,
-            @RequestParam(required = false) String type) {
-        List<RecordDto> records = recordService.getRecordsByBook(bookId, type);
-        return ResponseEntity.ok(records);
+    @PutMapping("/{id}")
+    public ResponseEntity<RecordDto> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        RecordDto updated = recordService.update(id,
+                (String) body.get("type"),
+                (String) body.get("text"),
+                (String) body.get("tag"),
+                body.get("relatedPage") != null ? ((Number) body.get("relatedPage")).intValue() : null);
+        return ResponseEntity.ok(updated);
     }
 
-    @GetMapping("/api/records/monthly")
-    public ResponseEntity<List<RecordDto>> getMonthlyRecords(
-            @RequestParam String type) {
-        List<RecordDto> records = recordService.getMonthlyRecords(TEMP_USER_ID, type);
-        return ResponseEntity.ok(records);
+    @PatchMapping("/{id}")
+    public ResponseEntity<RecordDto> patch(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        RecordDto updated = recordService.update(id,
+                (String) body.get("type"),
+                (String) body.get("text"),
+                (String) body.get("tag"),
+                body.get("relatedPage") != null ? ((Number) body.get("relatedPage")).intValue() : null);
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        recordService.delete(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/bybook")
+    public ResponseEntity<List<RecordDto>> getByBook(
+            @RequestParam Long bookId,
+            @RequestParam(required = false) String type) {
+        return ResponseEntity.ok(recordService.getRecordsByBook(bookId, type));
+    }
+
+    @GetMapping("/monthly")
+    public ResponseEntity<List<RecordDto>> getMonthly(
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+        java.time.YearMonth ym = (year != null && month != null)
+                ? java.time.YearMonth.of(year, month)
+                : java.time.YearMonth.now();
+        return ResponseEntity.ok(recordService.getMonthlyRecords(TEMP_USER_ID, type, ym.getYear(), ym.getMonthValue()));
     }
 }
