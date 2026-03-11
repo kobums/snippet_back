@@ -42,4 +42,10 @@ public class User {
         this.password = password;
         this.name = name;
     }
+
+    public void update(String email, String password, String name) {
+        if (email != null) this.email = email;
+        if (password != null) this.password = password;
+        if (name != null) this.name = name;
+    }
 }

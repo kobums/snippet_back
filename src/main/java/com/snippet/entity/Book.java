@@ -63,4 +63,16 @@ public class Book {
         this.totalPage = totalPage;
         this.publicationDate = publicationDate;
     }
+
+    public void update(String isbn, String title, String author, String coverUrl, String affiliateUrl,
+            String publisher, Integer totalPage, java.time.LocalDate publicationDate) {
+        if (isbn != null) this.isbn = isbn;
+        if (title != null) this.title = title;
+        if (author != null) this.author = author;
+        if (coverUrl != null) this.coverUrl = coverUrl;
+        if (affiliateUrl != null) this.affiliateUrl = affiliateUrl;
+        if (publisher != null) this.publisher = publisher;
+        if (totalPage != null) this.totalPage = totalPage;
+        if (publicationDate != null) this.publicationDate = publicationDate;
+    }
 }

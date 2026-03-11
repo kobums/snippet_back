@@ -56,8 +56,10 @@ public class UserBook {
         this.updateDate = LocalDateTime.now();
         if (this.type == null)
             this.type = "wish";
-        if (this.status == null)
-            this.status = "waiting";
+        // wish 타입은 status를 none으로, 그 외엔 waiting 기본값
+        if (this.status == null) {
+            this.status = "wish".equals(this.type) ? "none" : "waiting";
+        }
         if (this.readPage == null)
             this.readPage = 0;
         if (this.startDate == null)

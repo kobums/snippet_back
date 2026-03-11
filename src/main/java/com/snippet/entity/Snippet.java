@@ -60,4 +60,11 @@ public class Snippet { // Renaming to ReadingRecord might break existing code, k
         this.tag = tag;
         this.relatedPage = relatedPage;
     }
+
+    public void update(String type, String text, String tag, Integer relatedPage) {
+        if (type != null) this.type = type;
+        if (text != null) this.text = text;
+        if (tag != null) this.tag = tag;
+        if (relatedPage != null) this.relatedPage = relatedPage;
+    }
 }
