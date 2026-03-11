@@ -1,12 +1,13 @@
 package com.snippet.service;
 
 import com.snippet.dto.LibraryAddRequestDto;
+import com.snippet.dto.UserBookDto;
 import com.snippet.entity.Book;
+import com.snippet.entity.User;
 import com.snippet.entity.UserBook;
 import com.snippet.repository.BookRepository;
 import com.snippet.repository.UserBookRepository;
 import com.snippet.repository.UserRepository;
-import com.snippet.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,30 +16,43 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class LibraryService {
+public class UserBookService {
 
     private final BookRepository bookRepository;
     private final UserBookRepository userBookRepository;
     private final UserRepository userRepository;
     private final BookSearchService bookSearchService;
 
+    @Transactional(readOnly = true)
+    public List<UserBookDto> findAll() {
+        return userBookRepository.findAll().stream()
+                .map(UserBookDto::from)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public UserBookDto findById(Long id) {
+        UserBook userBook = userBookRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("UserBook not found: " + id));
+        return UserBookDto.from(userBook);
+    }
+
     @Transactional
-    public Long addBookToLibrary(Long userId, LibraryAddRequestDto request) {
-        // 1. Check if Book exists by ISBN, otherwise save new Book
+    public Long create(Long userId, LibraryAddRequestDto request) {
         Book book = bookRepository.findByIsbn(request.getIsbn())
                 .orElseGet(() -> {
                     LocalDate pubDate = LocalDate.of(1970, 1, 1);
                     if (request.getPubDate() != null && !request.getPubDate().isEmpty()) {
                         try {
-                            // PUBLISH_PREDATE는 yyyyMMdd 형식 (예: 20220509)
                             pubDate = LocalDate.parse(request.getPubDate(),
                                     DateTimeFormatter.ofPattern("yyyyMMdd"));
                         } catch (DateTimeParseException e) {
                             try {
-                                // yyyy-MM-dd 형식도 시도
                                 pubDate = LocalDate.parse(request.getPubDate());
                             } catch (DateTimeParseException e2) {
                                 // 파싱 실패 시 기본값 유지
@@ -49,8 +63,6 @@ public class LibraryService {
                     String parsedAuthor = "Unknown";
                     if (request.getAuthor() != null && !request.getAuthor().trim().isEmpty()) {
                         String fullAuthor = request.getAuthor();
-                        // "저자: " 로 시작하는 첫 번째 항목 파싱
-                        // (예: "저자: 헨리 데이비드 소로, 옮긴이: 강승영" -> "헨리 데이비드 소로")
                         String[] parts = fullAuthor.split(",");
                         if (parts.length > 0) {
                             String firstPart = parts[0].trim();
@@ -75,12 +87,11 @@ public class LibraryService {
                             .publicationDate(pubDate)
                             .totalPage(pages)
                             .coverUrl(request.getCoverUrl() != null ? request.getCoverUrl() : "")
-                            .affiliateUrl("") // Will be generated later or by affiliate service
+                            .affiliateUrl("")
                             .build();
                     return bookRepository.save(newBook);
                 });
 
-        // 2. Check if UserBook already exists for this user and book
         UserBook userBook = userBookRepository.findByUser_IdAndBook(userId, book)
                 .orElseGet(() -> {
                     LocalDateTime startDate = LocalDateTime.now();
@@ -111,11 +122,19 @@ public class LibraryService {
                     User user = userRepository.findById(userId)
                             .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
+                    // wish 타입은 status를 none으로 강제, 그 외엔 요청값 또는 waiting 기본값
+                    String resolvedStatus;
+                    if ("wish".equals(request.getType())) {
+                        resolvedStatus = "none";
+                    } else {
+                        resolvedStatus = request.getStatus() != null ? request.getStatus() : "waiting";
+                    }
+
                     UserBook newUserBook = UserBook.builder()
                             .user(user)
                             .book(book)
                             .type(request.getType() != null ? request.getType() : "wish")
-                            .status(request.getStatus() != null ? request.getStatus() : "waiting")
+                            .status(resolvedStatus)
                             .readPage(0)
                             .startDate(startDate)
                             .endDate(endDate)
@@ -127,103 +146,95 @@ public class LibraryService {
     }
 
     @Transactional
-    public void updateStatus(Long userBookId, Long userId, String status) {
-        UserBook userBook = userBookRepository.findById(userBookId)
-                .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
+    public UserBookDto update(Long id, Long userId, String type, String status,
+            Integer readPage, String startDateStr, String endDateStr) {
+        UserBook userBook = userBookRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("UserBook not found: " + id));
 
         if (!userBook.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("Unauthorized");
         }
 
-        userBook.updateStatus(status);
-        
-        if ("completed".equals(status) || "dropped".equals(status)) {
-            userBook.updateEndDate(LocalDateTime.now());
-            if ("completed".equals(status)) {
-                Integer totalPage = userBook.getBook().getTotalPage();
-                if (totalPage != null) {
-                    userBook.updateReadPage(totalPage);
+        if (type != null) {
+            userBook.updateType(type);
+            // 반납 완료: status를 completed로, endDate를 현재 시각으로 자동 설정
+            if ("return".equals(type)) {
+                userBook.updateStatus("completed");
+                userBook.updateEndDate(LocalDateTime.now());
+            }
+            // wish로 변경: status를 none으로 강제
+            if ("wish".equals(type)) {
+                userBook.updateStatus("none");
+            }
+        }
+        if (status != null) {
+            userBook.updateStatus(status);
+            if ("completed".equals(status) || "dropped".equals(status)) {
+                userBook.updateEndDate(LocalDateTime.now());
+                if ("completed".equals(status)) {
+                    Integer totalPage = userBook.getBook().getTotalPage();
+                    if (totalPage != null) {
+                        userBook.updateReadPage(totalPage);
+                    }
                 }
             }
         }
+        if (readPage != null) userBook.updateReadPage(readPage);
+        if (startDateStr != null) {
+            userBook.updateStartDate(parseDateTime(startDateStr));
+        }
+        if (endDateStr != null) {
+            userBook.updateEndDate(parseDateTime(endDateStr));
+        }
+
+        return UserBookDto.from(userBook);
     }
 
     @Transactional
-    public void updateType(Long userBookId, Long userId, String type) {
-        UserBook userBook = userBookRepository.findById(userBookId)
-                .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
-
-        if (!userBook.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("Unauthorized");
-        }
-
-        userBook.updateType(type);
-    }
-
-    @Transactional
-    public void updateProgress(Long userBookId, Long userId, Integer readPage) {
-        UserBook userBook = userBookRepository.findById(userBookId)
-                .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
-
-        if (!userBook.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("Unauthorized");
-        }
-
-        userBook.updateReadPage(readPage);
-    }
-
-    @Transactional
-    public void updateStartDate(Long userBookId, Long userId, String startDateStr) {
-        UserBook userBook = userBookRepository.findById(userBookId)
-                .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
-
-        if (!userBook.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("Unauthorized");
-        }
-
-        if (startDateStr != null && !startDateStr.isEmpty()) {
-            try {
-                LocalDateTime startDate;
-                if (startDateStr.contains("T") || startDateStr.contains(":")) {
-                    startDate = LocalDateTime.parse(startDateStr);
-                } else {
-                    startDate = LocalDate.parse(startDateStr).atStartOfDay();
-                }
-                userBook.updateStartDate(startDate);
-            } catch (DateTimeParseException e) {
-                throw new IllegalArgumentException("Invalid date format");
-            }
-        }
-    }
-
-    @Transactional
-    public void updateEndDate(Long userBookId, Long userId, String endDateStr) {
-        UserBook userBook = userBookRepository.findById(userBookId)
-                .orElseThrow(() -> new IllegalArgumentException("UserBook not found"));
-
-        if (!userBook.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("Unauthorized");
-        }
-
-        if (endDateStr != null && !endDateStr.isEmpty()) {
-            try {
-                LocalDateTime endDate;
-                if (endDateStr.contains("T") || endDateStr.contains(":")) {
-                    endDate = LocalDateTime.parse(endDateStr);
-                } else {
-                    endDate = LocalDate.parse(endDateStr).atStartOfDay();
-                }
-                userBook.updateEndDate(endDate);
-            } catch (DateTimeParseException e) {
-                throw new IllegalArgumentException("Invalid date format");
-            }
-        }
+    public void delete(Long id) {
+        userBookRepository.deleteById(id);
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<com.snippet.dto.UserBookDto> getUserBooks(Long userId) {
+    public List<UserBookDto> getUserBooks(Long userId) {
         return userBookRepository.findByUser_Id(userId).stream()
-                .map(com.snippet.dto.UserBookDto::from)
-                .collect(java.util.stream.Collectors.toList());
+                .map(UserBookDto::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 해당 월에 활동이 있는 책 조회 (활동 기간 겹침 방식)
+     *
+     * - reading/completed/dropped: startDate ~ endDate 가 해당 월과 겹치면 포함
+     * - waiting: createDate가 해당 월 안에 있으면 포함
+     */
+    @Transactional(readOnly = true)
+    public List<UserBookDto> getUserBooksByMonth(Long userId, int year, int month) {
+        java.time.YearMonth yearMonth = java.time.YearMonth.of(year, month);
+        LocalDateTime monthStart = yearMonth.atDay(1).atStartOfDay();
+        LocalDateTime monthEnd = yearMonth.atEndOfMonth().atTime(23, 59, 59);
+
+        // 활동 기간이 겹치는 책 (reading/completed/dropped)
+        List<UserBook> overlapping = userBookRepository.findByUser_IdAndDateOverlap(userId, monthStart, monthEnd);
+
+        // 해당 월에 생성된 대기중 책
+        List<UserBook> waitingInMonth = userBookRepository.findByUser_IdAndWaitingInMonth(userId, monthStart, monthEnd);
+
+        return java.util.stream.Stream.concat(overlapping.stream(), waitingInMonth.stream())
+                .distinct()
+                .map(UserBookDto::from)
+                .collect(Collectors.toList());
+    }
+
+    private LocalDateTime parseDateTime(String dateStr) {
+        try {
+            if (dateStr.contains("T") || dateStr.contains(":")) {
+                return LocalDateTime.parse(dateStr);
+            } else {
+                return LocalDate.parse(dateStr).atStartOfDay();
+            }
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Invalid date format: " + dateStr);
+        }
     }
 }
