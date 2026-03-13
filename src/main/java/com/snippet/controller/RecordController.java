@@ -2,9 +2,11 @@ package com.snippet.controller;
 
 import com.snippet.dto.RecordAddRequestDto;
 import com.snippet.dto.RecordDto;
+import com.snippet.security.CustomUserDetails;
 import com.snippet.service.RecordService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,8 +19,6 @@ public class RecordController {
 
     private final RecordService recordService;
 
-    private static final Long TEMP_USER_ID = 1L;
-
     @GetMapping
     public ResponseEntity<List<RecordDto>> getAll() {
         return ResponseEntity.ok(recordService.findAll());
@@ -30,8 +30,11 @@ public class RecordController {
     }
 
     @PostMapping
-    public ResponseEntity<Long> create(@RequestBody RecordAddRequestDto requestDto) {
-        Long recordId = recordService.create(TEMP_USER_ID, requestDto);
+    public ResponseEntity<Long> create(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody RecordAddRequestDto requestDto) {
+        Long userId = userDetails.getUser().getId();
+        Long recordId = recordService.create(userId, requestDto);
         return ResponseEntity.ok(recordId);
     }
 
@@ -70,12 +73,14 @@ public class RecordController {
 
     @GetMapping("/monthly")
     public ResponseEntity<List<RecordDto>> getMonthly(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer month) {
+        Long userId = userDetails.getUser().getId();
         java.time.YearMonth ym = (year != null && month != null)
                 ? java.time.YearMonth.of(year, month)
                 : java.time.YearMonth.now();
-        return ResponseEntity.ok(recordService.getMonthlyRecords(TEMP_USER_ID, type, ym.getYear(), ym.getMonthValue()));
+        return ResponseEntity.ok(recordService.getMonthlyRecords(userId, type, ym.getYear(), ym.getMonthValue()));
     }
 }
