@@ -16,6 +16,9 @@ RUN ./gradlew dependencies --no-daemon || true
 # 소스 코드 복사
 COPY src src
 
+# 환경 변수 파일 복사
+COPY .env .env
+
 # 애플리케이션 빌드 (테스트 제외)
 RUN ./gradlew bootJar -x test --no-daemon
 

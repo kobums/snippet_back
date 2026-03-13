@@ -6,12 +6,14 @@ server: dummy
 	./gradlew clean build -x test
 
 run:
+	cp .env.local .env
 	./gradlew bootRun
 
 test: dummy
 	./gradlew test
 
 dockerbuild:
+	cp .env.production .env
 	docker buildx build --platform linux/amd64 -t kobums/snippetback:$(tag) .
 
 docker: server dockerbuild
