@@ -2,11 +2,18 @@ package com.snippet.controller;
 
 import com.snippet.dto.LibraryAddRequestDto;
 import com.snippet.dto.UserBookDto;
+import com.snippet.dto.MonthlyStatsDto;
+import com.snippet.dto.YearlyStatsDto;
+import com.snippet.dto.CategoryStatsDto;
+import com.snippet.dto.ReadingInsightsDto;
+import com.snippet.security.CustomUserDetails;
 import com.snippet.service.UserBookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
@@ -17,8 +24,6 @@ import java.util.Map;
 public class UserBookController {
 
     private final UserBookService userBookService;
-
-    private static final Long TEMP_USER_ID = 1L;
 
     @GetMapping
     public ResponseEntity<List<UserBookDto>> getAll() {
@@ -31,14 +36,21 @@ public class UserBookController {
     }
 
     @PostMapping
-    public ResponseEntity<Long> create(@RequestBody LibraryAddRequestDto requestDto) {
-        Long userBookId = userBookService.create(TEMP_USER_ID, requestDto);
+    public ResponseEntity<Long> create(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody LibraryAddRequestDto requestDto) {
+        Long userId = userDetails.getUser().getId();
+        Long userBookId = userBookService.create(userId, requestDto);
         return ResponseEntity.ok(userBookId);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserBookDto> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        UserBookDto updated = userBookService.update(id, TEMP_USER_ID,
+    public ResponseEntity<UserBookDto> update(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        Long userId = userDetails.getUser().getId();
+        UserBookDto updated = userBookService.update(id, userId,
                 (String) body.get("type"),
                 (String) body.get("status"),
                 body.get("readPage") != null ? ((Number) body.get("readPage")).intValue() : null,
@@ -48,8 +60,12 @@ public class UserBookController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<UserBookDto> patch(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        UserBookDto updated = userBookService.update(id, TEMP_USER_ID,
+    public ResponseEntity<UserBookDto> patch(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        Long userId = userDetails.getUser().getId();
+        UserBookDto updated = userBookService.update(id, userId,
                 (String) body.get("type"),
                 (String) body.get("status"),
                 body.get("readPage") != null ? ((Number) body.get("readPage")).intValue() : null,
@@ -70,11 +86,61 @@ public class UserBookController {
      */
     @GetMapping("/monthly")
     public ResponseEntity<List<UserBookDto>> getMonthly(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer month) {
+        Long userId = userDetails.getUser().getId();
         YearMonth ym = (year != null && month != null)
                 ? YearMonth.of(year, month)
                 : YearMonth.now();
-        return ResponseEntity.ok(userBookService.getUserBooksByMonth(TEMP_USER_ID, ym.getYear(), ym.getMonthValue()));
+        return ResponseEntity.ok(userBookService.getUserBooksByMonth(userId, ym.getYear(), ym.getMonthValue()));
+    }
+
+    // ==================== 통계 API ====================
+
+    /**
+     * 월별 통계 조회
+     */
+    @GetMapping("/stats/monthly")
+    public ResponseEntity<List<MonthlyStatsDto>> getMonthlyStats(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) Integer year) {
+        Long userId = userDetails.getUser().getId();
+        int targetYear = (year != null) ? year : LocalDate.now().getYear();
+        return ResponseEntity.ok(userBookService.getMonthlyStats(userId, targetYear));
+    }
+
+    /**
+     * 연도별 통계 조회
+     */
+    @GetMapping("/stats/yearly")
+    public ResponseEntity<List<YearlyStatsDto>> getYearlyStats(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(userBookService.getYearlyStats(userId));
+    }
+
+    /**
+     * 카테고리별 통계 조회
+     */
+    @GetMapping("/stats/category")
+    public ResponseEntity<List<CategoryStatsDto>> getCategoryStats(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) Integer year) {
+        Long userId = userDetails.getUser().getId();
+        int targetYear = (year != null) ? year : LocalDate.now().getYear();
+        return ResponseEntity.ok(userBookService.getCategoryStats(userId, targetYear));
+    }
+
+    /**
+     * 독서 인사이트 조회
+     */
+    @GetMapping("/stats/insights")
+    public ResponseEntity<ReadingInsightsDto> getReadingInsights(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) Integer year) {
+        Long userId = userDetails.getUser().getId();
+        int targetYear = (year != null) ? year : LocalDate.now().getYear();
+        return ResponseEntity.ok(userBookService.getReadingInsights(userId, targetYear));
     }
 }
