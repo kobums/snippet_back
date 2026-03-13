@@ -2,6 +2,10 @@ package com.snippet.service;
 
 import com.snippet.dto.LibraryAddRequestDto;
 import com.snippet.dto.UserBookDto;
+import com.snippet.dto.MonthlyStatsDto;
+import com.snippet.dto.YearlyStatsDto;
+import com.snippet.dto.CategoryStatsDto;
+import com.snippet.dto.ReadingInsightsDto;
 import com.snippet.entity.Book;
 import com.snippet.entity.User;
 import com.snippet.entity.UserBook;
@@ -16,8 +20,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.List;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Comparator;
 
 @Service
 @RequiredArgsConstructor
@@ -236,5 +242,112 @@ public class UserBookService {
         } catch (DateTimeParseException e) {
             throw new IllegalArgumentException("Invalid date format: " + dateStr);
         }
+    }
+
+    // ==================== 통계 메서드 ====================
+
+    /**
+     * 월별 통계 조회
+     */
+    @Transactional(readOnly = true)
+    public List<MonthlyStatsDto> getMonthlyStats(Long userId, int year) {
+        // 1~12월 초기화
+        Map<Integer, MonthlyStatsDto> statsMap = new HashMap<>();
+        for (int i = 1; i <= 12; i++) {
+            statsMap.put(i, new MonthlyStatsDto(i, 0, 0, new HashMap<>()));
+        }
+
+        // 완료 권수 집계
+        List<Object[]> completedCounts = userBookRepository.findMonthlyCompletedCount(userId, year);
+        for (Object[] row : completedCounts) {
+            int month = (int) row[0];
+            long count = (long) row[1];
+            statsMap.get(month).setCompletedCount((int) count);
+        }
+
+        // 페이지 수 집계
+        List<Object[]> totalPages = userBookRepository.findMonthlyTotalPages(userId, year);
+        for (Object[] row : totalPages) {
+            int month = (int) row[0];
+            long pages = row[1] != null ? ((Number) row[1]).longValue() : 0;
+            statsMap.get(month).setTotalPages((int) pages);
+        }
+
+        // 카테고리별 집계
+        List<Object[]> categoryCounts = userBookRepository.findMonthlyCategoryCount(userId, year);
+        for (Object[] row : categoryCounts) {
+            int month = (int) row[0];
+            String category = (String) row[1];
+            long count = (long) row[2];
+            statsMap.get(month).getCategoryCount().put(category, (int) count);
+        }
+
+        return new ArrayList<>(statsMap.values()).stream()
+                .sorted(Comparator.comparingInt(MonthlyStatsDto::getMonth))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 연도별 통계 조회
+     */
+    @Transactional(readOnly = true)
+    public List<YearlyStatsDto> getYearlyStats(Long userId) {
+        List<Object[]> results = userBookRepository.findYearlyStats(userId);
+        return results.stream()
+                .map(row -> new YearlyStatsDto(
+                        (int) row[0],
+                        ((Long) row[1]).intValue(),
+                        row[2] != null ? ((Number) row[2]).intValue() : 0
+                ))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 카테고리별 통계 조회
+     */
+    @Transactional(readOnly = true)
+    public List<CategoryStatsDto> getCategoryStats(Long userId, int year) {
+        List<Object[]> results = userBookRepository.findCategoryStats(userId, year);
+        return results.stream()
+                .map(row -> {
+                    String category = (String) row[0];
+                    int totalCount = ((Long) row[1]).intValue();
+                    int completedCount = ((Long) row[2]).intValue();
+                    double completionRate = totalCount > 0 ? (completedCount * 100.0 / totalCount) : 0.0;
+                    return new CategoryStatsDto(category, totalCount, completedCount, completionRate);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 독서 인사이트 조회
+     */
+    @Transactional(readOnly = true)
+    public ReadingInsightsDto getReadingInsights(Long userId, int year) {
+        Double avgDays = userBookRepository.findAverageReadingDays(userId, year);
+
+        // 가장 많이 읽은 장르
+        List<CategoryStatsDto> categoryStats = getCategoryStats(userId, year);
+        String topCategory = categoryStats.stream()
+                .max(Comparator.comparingInt(CategoryStatsDto::getCompletedCount))
+                .map(CategoryStatsDto::getCategory)
+                .orElse("없음");
+
+        // 최장 독서 기록
+        List<UserBook> longestBooks = userBookRepository.findLongestReadingBook(userId, year, 1);
+        int longestDays = 0;
+        String longestBook = "없음";
+        if (!longestBooks.isEmpty()) {
+            UserBook book = longestBooks.get(0);
+            longestDays = (int) ChronoUnit.DAYS.between(book.getStartDate(), book.getEndDate());
+            longestBook = book.getBook().getTitle();
+        }
+
+        return new ReadingInsightsDto(
+                avgDays != null ? avgDays : 0.0,
+                topCategory,
+                longestDays,
+                longestBook
+        );
     }
 }

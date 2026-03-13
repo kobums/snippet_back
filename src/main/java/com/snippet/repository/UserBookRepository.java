@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface UserBookRepository extends JpaRepository<UserBook, Long> {
@@ -56,4 +57,76 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
             @Param("userId") Long userId,
             @Param("monthStart") LocalDateTime monthStart,
             @Param("monthEnd") LocalDateTime monthEnd);
+
+    // ==================== 통계 쿼리 메서드 ====================
+
+    /**
+     * 월별 완료 권수
+     */
+    @Query("SELECT MONTH(ub.endDate) as month, COUNT(ub) as count " +
+           "FROM UserBook ub " +
+           "WHERE ub.user.id = :userId AND ub.status = 'completed' " +
+           "AND YEAR(ub.endDate) = :year " +
+           "GROUP BY MONTH(ub.endDate)")
+    List<Object[]> findMonthlyCompletedCount(@Param("userId") Long userId, @Param("year") int year);
+
+    /**
+     * 월별 읽은 페이지 수
+     */
+    @Query("SELECT MONTH(ub.endDate) as month, SUM(ub.book.totalPage) as pages " +
+           "FROM UserBook ub " +
+           "WHERE ub.user.id = :userId AND ub.status = 'completed' " +
+           "AND YEAR(ub.endDate) = :year " +
+           "GROUP BY MONTH(ub.endDate)")
+    List<Object[]> findMonthlyTotalPages(@Param("userId") Long userId, @Param("year") int year);
+
+    /**
+     * 월별 카테고리별 권수
+     */
+    @Query("SELECT MONTH(ub.endDate) as month, ub.book.category, COUNT(ub) " +
+           "FROM UserBook ub " +
+           "WHERE ub.user.id = :userId AND ub.status = 'completed' " +
+           "AND YEAR(ub.endDate) = :year AND ub.book.category IS NOT NULL " +
+           "GROUP BY MONTH(ub.endDate), ub.book.category")
+    List<Object[]> findMonthlyCategoryCount(@Param("userId") Long userId, @Param("year") int year);
+
+    /**
+     * 연도별 완료 권수 및 페이지 수
+     */
+    @Query("SELECT YEAR(ub.endDate) as year, COUNT(ub) as count, SUM(ub.book.totalPage) as pages " +
+           "FROM UserBook ub " +
+           "WHERE ub.user.id = :userId AND ub.status = 'completed' " +
+           "GROUP BY YEAR(ub.endDate) " +
+           "ORDER BY year DESC")
+    List<Object[]> findYearlyStats(@Param("userId") Long userId);
+
+    /**
+     * 카테고리별 통계 (올해 기준)
+     */
+    @Query("SELECT ub.book.category, COUNT(ub), " +
+           "SUM(CASE WHEN ub.status = 'completed' THEN 1 ELSE 0 END) " +
+           "FROM UserBook ub " +
+           "WHERE ub.user.id = :userId AND YEAR(ub.startDate) = :year " +
+           "AND ub.book.category IS NOT NULL " +
+           "GROUP BY ub.book.category")
+    List<Object[]> findCategoryStats(@Param("userId") Long userId, @Param("year") int year);
+
+    /**
+     * 평균 독서 일수 (완료한 책만)
+     */
+    @Query(value = "SELECT AVG(DATEDIFF(ub_enddate, ub_startdate)) " +
+           "FROM userbook_tb " +
+           "WHERE ub_user = :userId AND ub_status = 'completed' " +
+           "AND YEAR(ub_enddate) = :year", nativeQuery = true)
+    Double findAverageReadingDays(@Param("userId") Long userId, @Param("year") int year);
+
+    /**
+     * 최장 독서 기록
+     */
+    @Query(value = "SELECT * FROM userbook_tb " +
+           "WHERE ub_user = :userId AND ub_status = 'completed' " +
+           "AND YEAR(ub_enddate) = :year " +
+           "ORDER BY DATEDIFF(ub_enddate, ub_startdate) DESC " +
+           "LIMIT :limit", nativeQuery = true)
+    List<UserBook> findLongestReadingBook(@Param("userId") Long userId, @Param("year") int year, @Param("limit") int limit);
 }
