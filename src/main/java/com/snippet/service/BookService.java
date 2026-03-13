@@ -33,9 +33,9 @@ public class BookService {
 
     @Transactional
     public Book update(Long id, String isbn, String title, String author, String coverUrl,
-            String affiliateUrl, String publisher, Integer totalPage, LocalDate publicationDate) {
+            String affiliateUrl, String publisher, Integer totalPage, LocalDate publicationDate, String category) {
         Book book = findById(id);
-        book.update(isbn, title, author, coverUrl, affiliateUrl, publisher, totalPage, publicationDate);
+        book.update(isbn, title, author, coverUrl, affiliateUrl, publisher, totalPage, publicationDate, category);
         return book;
     }
 

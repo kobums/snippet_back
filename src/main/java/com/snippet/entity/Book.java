@@ -46,6 +46,9 @@ public class Book {
     @Column(name = "b_publicationdate")
     private java.time.LocalDate publicationDate;
 
+    @Column(name = "b_category", length = 50)
+    private String category;
+
     @PrePersist
     protected void onCreate() {
         this.createDate = LocalDateTime.now();
@@ -53,7 +56,7 @@ public class Book {
 
     @Builder
     public Book(String isbn, String title, String author, String coverUrl, String affiliateUrl, String publisher,
-            Integer totalPage, java.time.LocalDate publicationDate) {
+            Integer totalPage, java.time.LocalDate publicationDate, String category) {
         this.isbn = isbn;
         this.title = title;
         this.author = author;
@@ -62,10 +65,11 @@ public class Book {
         this.publisher = publisher;
         this.totalPage = totalPage;
         this.publicationDate = publicationDate;
+        this.category = category;
     }
 
     public void update(String isbn, String title, String author, String coverUrl, String affiliateUrl,
-            String publisher, Integer totalPage, java.time.LocalDate publicationDate) {
+            String publisher, Integer totalPage, java.time.LocalDate publicationDate, String category) {
         if (isbn != null) this.isbn = isbn;
         if (title != null) this.title = title;
         if (author != null) this.author = author;
@@ -74,5 +78,6 @@ public class Book {
         if (publisher != null) this.publisher = publisher;
         if (totalPage != null) this.totalPage = totalPage;
         if (publicationDate != null) this.publicationDate = publicationDate;
+        if (category != null) this.category = category;
     }
 }
