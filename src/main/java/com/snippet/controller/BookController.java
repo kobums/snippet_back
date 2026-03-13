@@ -21,8 +21,10 @@ public class BookController {
     private final BookSearchService bookSearchService;
 
     @GetMapping("/search")
-    public ResponseEntity<List<BookSearchDto>> searchBooks(@RequestParam String query) {
-        return ResponseEntity.ok(bookSearchService.searchBooks(query));
+    public ResponseEntity<List<BookSearchDto>> searchBooks(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "1") int page) {
+        return ResponseEntity.ok(bookSearchService.searchBooks(query, page));
     }
 
     @GetMapping
@@ -46,6 +48,7 @@ public class BookController {
                 .publisher((String) body.get("publisher"))
                 .totalPage(body.get("totalPage") != null ? ((Number) body.get("totalPage")).intValue() : null)
                 .publicationDate(body.get("publicationDate") != null ? LocalDate.parse((String) body.get("publicationDate")) : null)
+                .category((String) body.get("category"))
                 .build();
         return ResponseEntity.ok(bookService.create(book));
     }
@@ -60,7 +63,8 @@ public class BookController {
                 (String) body.get("affiliateUrl"),
                 (String) body.get("publisher"),
                 body.get("totalPage") != null ? ((Number) body.get("totalPage")).intValue() : null,
-                body.get("publicationDate") != null ? LocalDate.parse((String) body.get("publicationDate")) : null);
+                body.get("publicationDate") != null ? LocalDate.parse((String) body.get("publicationDate")) : null,
+                (String) body.get("category"));
         return ResponseEntity.ok(updated);
     }
 
@@ -74,7 +78,8 @@ public class BookController {
                 (String) body.get("affiliateUrl"),
                 (String) body.get("publisher"),
                 body.get("totalPage") != null ? ((Number) body.get("totalPage")).intValue() : null,
-                body.get("publicationDate") != null ? LocalDate.parse((String) body.get("publicationDate")) : null);
+                body.get("publicationDate") != null ? LocalDate.parse((String) body.get("publicationDate")) : null,
+                (String) body.get("category"));
         return ResponseEntity.ok(updated);
     }
 

@@ -20,7 +20,7 @@ public class BookSearchService {
     @Value("${aladin.api-key:}")
     private String aladinApiKey;
 
-    public List<BookSearchDto> searchBooks(String query) {
+    public List<BookSearchDto> searchBooks(String query, int page) {
         if (aladinApiKey == null || aladinApiKey.isEmpty()) {
             log.info("Aladin API key is empty. Returning mock search results for query: {}", query);
             return getMockResults(query);
@@ -33,10 +33,11 @@ public class BookSearchService {
                     .queryParam("Query", query)
                     .queryParam("QueryType", "Keyword")
                     .queryParam("MaxResults", 10)
-                    .queryParam("start", 1)
+                    .queryParam("start", page)
                     .queryParam("SearchTarget", "Book")
                     .queryParam("output", "js")
                     .queryParam("Version", "20131101")
+                    .queryParam("Cover", "Big")
                     .build(false)
                     .toUriString();
 
@@ -46,6 +47,12 @@ public class BookSearchService {
 
             if (response != null && response.has("item")) {
                 for (com.fasterxml.jackson.databind.JsonNode item : response.get("item")) {
+                    // 카테고리 필터링: 북토크, 상품 등 제외
+                    String categoryName = item.path("categoryName").asText("");
+                    if (shouldExcludeCategory(categoryName)) {
+                        continue; // 해당 항목 건너뛰기
+                    }
+
                     String isbn = item.path("isbn13").asText("");
                     if (isbn.isEmpty()) {
                         isbn = item.path("isbn").asText(""); // fallback to isbn10
@@ -88,6 +95,7 @@ public class BookSearchService {
                     .queryParam("ItemId", isbn)
                     .queryParam("output", "js")
                     .queryParam("Version", "20131101")
+                    .queryParam("Cover", "Big")
                     // .queryParam("OptResult", "packing") // packing, ebookList 등 옵션 (페이지수는 기본으로
                     // 내려옴)
                     .build(false)
@@ -108,6 +116,35 @@ public class BookSearchService {
         }
 
         return 0;
+    }
+
+    private boolean shouldExcludeCategory(String categoryName) {
+        if (categoryName == null || categoryName.isEmpty()) {
+            return false;
+        }
+
+        // 제외할 카테고리 키워드
+        String[] excludeKeywords = {
+                "북토크",
+                "상품",
+                "eBook",
+                "중고",
+                "외국도서",
+                "음반",
+                "DVD",
+                "블루레이",
+                "굿즈",
+                "세트",
+        };
+
+        String lowerCategoryName = categoryName.toLowerCase();
+        for (String keyword : excludeKeywords) {
+            if (lowerCategoryName.contains(keyword.toLowerCase())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private String formatAuthorString(String rawAuthor) {
