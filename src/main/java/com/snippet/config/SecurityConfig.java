@@ -4,6 +4,7 @@ import com.snippet.security.CustomUserDetailsService;
 import com.snippet.security.JwtAuthenticationFilter;
 import com.snippet.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,6 +32,9 @@ public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
+
+    @Value("${cors.allowed-origins}")
+    private String allowedOrigins;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -68,8 +72,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // 모든 오리진 허용 (개발 편의를 위해 패턴 사용)
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        // 환경변수로 관리되는 오리진만 허용 (쉼표로 구분)
+        configuration.setAllowedOrigins(List.of(allowedOrigins.split(",")));
+        System.out.println(List.of(allowedOrigins.split(",")));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
