@@ -31,4 +31,7 @@ public interface SnippetRepository extends JpaRepository<Snippet, Long> {
 
     List<Snippet> findByUserAndTypeAndCreateDateBetweenOrderByCreateDateDesc(
             User user, String type, LocalDateTime start, LocalDateTime end);
+
+    List<Snippet> findByUserAndCreateDateBetweenOrderByCreateDateDesc(
+            User user, LocalDateTime start, LocalDateTime end);
 }

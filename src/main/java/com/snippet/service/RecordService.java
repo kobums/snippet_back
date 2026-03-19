@@ -97,8 +97,9 @@ public class RecordService {
         LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
         LocalDateTime end = yearMonth.atEndOfMonth().atTime(23, 59, 59);
 
-        List<Snippet> records = snippetRepository
-                .findByUserAndTypeAndCreateDateBetweenOrderByCreateDateDesc(user, type, start, end);
+        List<Snippet> records = (type != null && !type.isBlank())
+                ? snippetRepository.findByUserAndTypeAndCreateDateBetweenOrderByCreateDateDesc(user, type, start, end)
+                : snippetRepository.findByUserAndCreateDateBetweenOrderByCreateDateDesc(user, start, end);
 
         return records.stream()
                 .map(RecordDto::from)
