@@ -13,6 +13,9 @@ import com.snippet.repository.BookRepository;
 import com.snippet.repository.UserBookRepository;
 import com.snippet.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -151,6 +154,12 @@ public class UserBookService {
         return userBook.getId();
     }
 
+    @Caching(evict = {
+        @CacheEvict(value = "monthlyStats", allEntries = true),
+        @CacheEvict(value = "yearlyStats", key = "#userId"),
+        @CacheEvict(value = "categoryStats", allEntries = true),
+        @CacheEvict(value = "readingInsights", allEntries = true)
+    })
     @Transactional
     public UserBookDto update(Long id, Long userId, String type, String status,
             Integer readPage, String startDateStr, String endDateStr) {
@@ -196,6 +205,12 @@ public class UserBookService {
         return UserBookDto.from(userBook);
     }
 
+    @Caching(evict = {
+        @CacheEvict(value = "monthlyStats", allEntries = true),
+        @CacheEvict(value = "yearlyStats", allEntries = true),
+        @CacheEvict(value = "categoryStats", allEntries = true),
+        @CacheEvict(value = "readingInsights", allEntries = true)
+    })
     @Transactional
     public void delete(Long id) {
         userBookRepository.deleteById(id);
@@ -247,8 +262,10 @@ public class UserBookService {
     // ==================== 통계 메서드 ====================
 
     /**
-     * 월별 통계 조회
+     * 월별 통계 조회 (통합 쿼리 사용 - 3회 → 1회)
+     * 캐시 적용: 같은 사용자/연도 조합은 1시간 동안 캐시
      */
+    @Cacheable(value = "monthlyStats", key = "#userId + '_' + #year")
     @Transactional(readOnly = true)
     public List<MonthlyStatsDto> getMonthlyStats(Long userId, int year) {
         // 1~12월 초기화
@@ -257,30 +274,39 @@ public class UserBookService {
             statsMap.put(i, new MonthlyStatsDto(i, 0, 0, new HashMap<>()));
         }
 
-        // 완료 권수 집계
-        List<Object[]> completedCounts = userBookRepository.findMonthlyCompletedCount(userId, year);
-        for (Object[] row : completedCounts) {
+        // 통합 쿼리로 한 번에 조회 (월별 완료 권수 + 페이지 수 + 카테고리별 권수)
+        // 결과: [month, completedCount, totalPages, category, categoryCount]
+        List<Object[]> results = userBookRepository.findMonthlyStatsIntegrated(userId, year);
+
+        // 월별로 집계된 데이터를 먼저 초기화
+        Map<Integer, Integer> monthCompletedMap = new HashMap<>();
+        Map<Integer, Long> monthPagesMap = new HashMap<>();
+
+        for (Object[] row : results) {
             int month = (int) row[0];
-            long count = (long) row[1];
-            statsMap.get(month).setCompletedCount((int) count);
+            int completedCount = ((Long) row[1]).intValue();
+            long totalPages = row[2] != null ? ((Number) row[2]).longValue() : 0;
+            String category = (String) row[3];
+            int categoryCount = ((Long) row[4]).intValue();
+
+            // 월별 완료 권수와 페이지는 카테고리별로 중복 집계되므로,
+            // 카테고리 null 체크 없이 합산 (카테고리별로 나뉜 값들의 합)
+            monthCompletedMap.merge(month, completedCount, (a, b) -> a + b);
+            monthPagesMap.merge(month, totalPages, (a, b) -> a + b);
+
+            // 카테고리별 권수 저장
+            if (category != null) {
+                statsMap.get(month).getCategoryCount().put(category, categoryCount);
+            }
         }
 
-        // 페이지 수 집계
-        List<Object[]> totalPages = userBookRepository.findMonthlyTotalPages(userId, year);
-        for (Object[] row : totalPages) {
-            int month = (int) row[0];
-            long pages = row[1] != null ? ((Number) row[1]).longValue() : 0;
-            statsMap.get(month).setTotalPages((int) pages);
-        }
-
-        // 카테고리별 집계
-        List<Object[]> categoryCounts = userBookRepository.findMonthlyCategoryCount(userId, year);
-        for (Object[] row : categoryCounts) {
-            int month = (int) row[0];
-            String category = (String) row[1];
-            long count = (long) row[2];
-            statsMap.get(month).getCategoryCount().put(category, (int) count);
-        }
+        // 월별 집계값 설정
+        monthCompletedMap.forEach((month, count) -> {
+            statsMap.get(month).setCompletedCount(count);
+        });
+        monthPagesMap.forEach((month, pages) -> {
+            statsMap.get(month).setTotalPages(pages.intValue());
+        });
 
         return new ArrayList<>(statsMap.values()).stream()
                 .sorted(Comparator.comparingInt(MonthlyStatsDto::getMonth))
@@ -289,7 +315,9 @@ public class UserBookService {
 
     /**
      * 연도별 통계 조회
+     * 캐시 적용: 사용자별로 캐시
      */
+    @Cacheable(value = "yearlyStats", key = "#userId")
     @Transactional(readOnly = true)
     public List<YearlyStatsDto> getYearlyStats(Long userId) {
         List<Object[]> results = userBookRepository.findYearlyStats(userId);
@@ -304,7 +332,9 @@ public class UserBookService {
 
     /**
      * 카테고리별 통계 조회
+     * 캐시 적용: 같은 사용자/연도 조합은 캐시
      */
+    @Cacheable(value = "categoryStats", key = "#userId + '_' + #year")
     @Transactional(readOnly = true)
     public List<CategoryStatsDto> getCategoryStats(Long userId, int year) {
         List<Object[]> results = userBookRepository.findCategoryStats(userId, year);
@@ -321,7 +351,9 @@ public class UserBookService {
 
     /**
      * 독서 인사이트 조회
+     * 캐시 적용: 같은 사용자/연도 조합은 캐시
      */
+    @Cacheable(value = "readingInsights", key = "#userId + '_' + #year")
     @Transactional(readOnly = true)
     public ReadingInsightsDto getReadingInsights(Long userId, int year) {
         Double avgDays = userBookRepository.findAverageReadingDays(userId, year);

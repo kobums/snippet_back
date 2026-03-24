@@ -9,10 +9,12 @@ import com.snippet.repository.SnippetArchiveRepository;
 import com.snippet.repository.SnippetRepository;
 import com.snippet.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -22,16 +24,35 @@ public class SnippetService {
     private final SnippetRepository snippetRepository;
     private final SnippetArchiveRepository snippetArchiveRepository;
     private final UserRepository userRepository;
+    private final Random random = new Random();
 
     public List<SnippetCardDto> getCards(int count, List<Long> excludeIds) {
+        // 개선된 랜덤 조회 - ORDER BY RAND() 대신 랜덤 오프셋 사용
         if (excludeIds == null || excludeIds.isEmpty()) {
-            return snippetRepository.findRandomSnippets(count)
+            long totalCount = snippetRepository.countSnippetCards();
+            if (totalCount == 0) {
+                return List.of();
+            }
+
+            // 랜덤 페이지 계산
+            int maxPage = (int) Math.ceil((double) totalCount / count) - 1;
+            int randomPage = maxPage > 0 ? random.nextInt(maxPage + 1) : 0;
+
+            return snippetRepository.findSnippetsWithOffset(PageRequest.of(randomPage, count))
                     .stream()
                     .map(SnippetCardDto::from)
                     .toList();
         }
 
-        return snippetRepository.findRandomSnippets(count, excludeIds)
+        long totalCount = snippetRepository.countSnippetCardsExcluding(excludeIds);
+        if (totalCount == 0) {
+            return List.of();
+        }
+
+        int maxPage = (int) Math.ceil((double) totalCount / count) - 1;
+        int randomPage = maxPage > 0 ? random.nextInt(maxPage + 1) : 0;
+
+        return snippetRepository.findSnippetsWithOffsetExcluding(excludeIds, PageRequest.of(randomPage, count))
                 .stream()
                 .map(SnippetCardDto::from)
                 .toList();

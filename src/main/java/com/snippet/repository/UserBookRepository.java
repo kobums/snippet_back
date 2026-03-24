@@ -14,11 +14,14 @@ import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface UserBookRepository extends JpaRepository<UserBook, Long> {
-    Optional<UserBook> findByUser_IdAndBook(Long userId, Book book);
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book WHERE ub.user.id = :userId AND ub.book = :book")
+    Optional<UserBook> findByUser_IdAndBook(@Param("userId") Long userId, @Param("book") Book book);
 
-    List<UserBook> findByUser_Id(Long userId);
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book WHERE ub.user.id = :userId")
+    List<UserBook> findByUser_Id(@Param("userId") Long userId);
 
-    List<UserBook> findByUser_IdOrderByUpdateDateDesc(Long userId);
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book WHERE ub.user.id = :userId ORDER BY ub.updateDate DESC")
+    List<UserBook> findByUser_IdOrderByUpdateDateDesc(@Param("userId") Long userId);
 
     @Query("SELECT COUNT(ub) FROM UserBook ub WHERE ub.user.id = :userId AND ub.status = :status AND ub.updateDate >= :startDate AND ub.updateDate <= :endDate")
     long countByUser_IdAndStatusAndUpdateDateBetween(
@@ -29,14 +32,15 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
 
     long countByUser_IdAndStatus(Long userId, String status);
 
-    List<UserBook> findByUser_IdAndStatus(Long userId, String status);
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book WHERE ub.user.id = :userId AND ub.status = :status")
+    List<UserBook> findByUser_IdAndStatus(@Param("userId") Long userId, @Param("status") String status);
 
     /**
      * 활동 기간(startDate ~ endDate)이 해당 월과 겹치는 책 조회.
      * - startDate <= 해당 월 말일  AND  endDate >= 해당 월 1일
      * - 즉, status가 reading/completed/dropped 인 책 대상
      */
-    @Query("SELECT ub FROM UserBook ub WHERE ub.user.id = :userId " +
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book WHERE ub.user.id = :userId " +
            "AND ub.status != 'waiting' " +
            "AND ub.startDate < :monthEnd " +
            "AND ub.endDate >= :monthStart")
@@ -49,7 +53,7 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
      * 해당 월에 생성된 대기중(waiting) 책 조회.
      * - createDate가 해당 월 안에 있는 경우
      */
-    @Query("SELECT ub FROM UserBook ub WHERE ub.user.id = :userId " +
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book WHERE ub.user.id = :userId " +
            "AND ub.status = 'waiting' " +
            "AND ub.createDate >= :monthStart " +
            "AND ub.createDate < :monthEnd")
@@ -61,8 +65,25 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     // ==================== 통계 쿼리 메서드 ====================
 
     /**
-     * 월별 완료 권수
+     * 월별 통합 통계 (완료 권수 + 페이지 수 + 카테고리별 권수)
+     * 반환: [month, completedCount, totalPages, category, categoryCount]
+     * category가 null이면 해당 월의 집계 정보만, null이 아니면 카테고리별 상세 정보
      */
+    @Query("SELECT MONTH(ub.endDate) as month, " +
+           "COUNT(ub) as completedCount, " +
+           "SUM(ub.book.totalPage) as totalPages, " +
+           "ub.book.category as category, " +
+           "COUNT(ub) as categoryCount " +
+           "FROM UserBook ub " +
+           "WHERE ub.user.id = :userId AND ub.status = 'completed' " +
+           "AND YEAR(ub.endDate) = :year " +
+           "GROUP BY MONTH(ub.endDate), ub.book.category")
+    List<Object[]> findMonthlyStatsIntegrated(@Param("userId") Long userId, @Param("year") int year);
+
+    /**
+     * 월별 완료 권수 (개별 쿼리 - 하위 호환성)
+     */
+    @Deprecated
     @Query("SELECT MONTH(ub.endDate) as month, COUNT(ub) as count " +
            "FROM UserBook ub " +
            "WHERE ub.user.id = :userId AND ub.status = 'completed' " +
@@ -71,8 +92,9 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     List<Object[]> findMonthlyCompletedCount(@Param("userId") Long userId, @Param("year") int year);
 
     /**
-     * 월별 읽은 페이지 수
+     * 월별 읽은 페이지 수 (개별 쿼리 - 하위 호환성)
      */
+    @Deprecated
     @Query("SELECT MONTH(ub.endDate) as month, SUM(ub.book.totalPage) as pages " +
            "FROM UserBook ub " +
            "WHERE ub.user.id = :userId AND ub.status = 'completed' " +
@@ -81,8 +103,9 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     List<Object[]> findMonthlyTotalPages(@Param("userId") Long userId, @Param("year") int year);
 
     /**
-     * 월별 카테고리별 권수
+     * 월별 카테고리별 권수 (개별 쿼리 - 하위 호환성)
      */
+    @Deprecated
     @Query("SELECT MONTH(ub.endDate) as month, ub.book.category, COUNT(ub) " +
            "FROM UserBook ub " +
            "WHERE ub.user.id = :userId AND ub.status = 'completed' " +
@@ -123,10 +146,11 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     /**
      * 최장 독서 기록
      */
-    @Query(value = "SELECT * FROM userbook_tb " +
-           "WHERE ub_user = :userId AND ub_status = 'completed' " +
-           "AND YEAR(ub_enddate) = :year " +
-           "ORDER BY DATEDIFF(ub_enddate, ub_startdate) DESC " +
+    @Query(value = "SELECT ub.* FROM userbook_tb ub " +
+           "JOIN book_tb b ON ub.ub_book = b.b_id " +
+           "WHERE ub.ub_user = :userId AND ub.ub_status = 'completed' " +
+           "AND YEAR(ub.ub_enddate) = :year " +
+           "ORDER BY DATEDIFF(ub.ub_enddate, ub.ub_startdate) DESC " +
            "LIMIT :limit", nativeQuery = true)
     List<UserBook> findLongestReadingBook(@Param("userId") Long userId, @Param("year") int year, @Param("limit") int limit);
 }

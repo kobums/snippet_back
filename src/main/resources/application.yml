@@ -7,6 +7,14 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      # HikariCP 커넥션 풀 설정 (성능 최적화)
+      maximum-pool-size: 10                    # 최대 커넥션 수
+      minimum-idle: 5                          # 최소 유휴 커넥션 수
+      connection-timeout: 20000                # 커넥션 타임아웃 (20초)
+      idle-timeout: 300000                     # 유휴 커넥션 타임아웃 (5분)
+      max-lifetime: 1200000                    # 커넥션 최대 수명 (20분)
+      connection-test-query: SELECT 1          # 커넥션 테스트 쿼리
 
   jpa:
     hibernate:
@@ -14,6 +22,18 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        # Hibernate 배치 처리 최적화
+        jdbc:
+          batch_size: 20                       # 배치 크기
+          fetch_size: 50                       # Fetch 크기
+        order_inserts: true                    # INSERT 순서 최적화
+        order_updates: true                    # UPDATE 순서 최적화
+        # 2차 캐시 (선택사항 - 프로덕션에서는 Redis 등 외부 캐시 사용 권장)
+        cache:
+          use_second_level_cache: false        # 현재는 비활성화
+          use_query_cache: false               # 현재는 비활성화
+        # 통계 및 로깅
+        generate_statistics: false             # 프로덕션에서는 false 권장
     open-in-view: false
 
   flyway:
