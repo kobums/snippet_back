@@ -48,4 +48,11 @@ public class AuthService {
 
         return new AuthDto.AuthResponse(user.getId(), user.getEmail(), user.getName(), token);
     }
+
+    @Transactional
+    public void deleteAccount(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+        userRepository.delete(user);
+    }
 }
