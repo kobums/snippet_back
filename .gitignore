@@ -39,5 +39,9 @@ out/
 ### Environment ###
 .env*
 
+### Google Cloud Service Account (NEVER commit!) ###
+snippet-*.json
+*-service-account.json
+
 ### CLAUDE ###
 .claude
