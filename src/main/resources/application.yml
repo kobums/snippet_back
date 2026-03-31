@@ -67,3 +67,7 @@ naver:
   clova:
     api-url: ${NAVER_CLOVA_API_URL:}
     secret-key: ${NAVER_CLOVA_SECRET_KEY:}
+
+google:
+  application:
+    credentials: ${GOOGLE_APPLICATION_CREDENTIALS:}
