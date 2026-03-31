@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: jdbc:mariadb://140.82.12.99:3306/snippet
+    username: snippet
+    password: snippetdb
+
+aladin:
+  api-key: ttbkobums1459001
+
+cors:
+  allowed-origins: http://localhost:3000
