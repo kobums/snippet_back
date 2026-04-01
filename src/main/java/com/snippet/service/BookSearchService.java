@@ -22,7 +22,6 @@ public class BookSearchService {
 
     public List<BookSearchDto> searchBooks(String query, int page) {
         if (aladinApiKey == null || aladinApiKey.isEmpty()) {
-            log.info("Aladin API key is empty. Returning mock search results for query: {}", query);
             return getMockResults(query);
         }
 
@@ -47,15 +46,14 @@ public class BookSearchService {
 
             if (response != null && response.has("item")) {
                 for (com.fasterxml.jackson.databind.JsonNode item : response.get("item")) {
-                    // 카테고리 필터링: 북토크, 상품 등 제외
                     String categoryName = item.path("categoryName").asText("");
                     if (shouldExcludeCategory(categoryName)) {
-                        continue; // 해당 항목 건너뛰기
+                        continue;
                     }
 
                     String isbn = item.path("isbn13").asText("");
                     if (isbn.isEmpty()) {
-                        isbn = item.path("isbn").asText(""); // fallback to isbn10
+                        isbn = item.path("isbn").asText("");
                     }
 
                     String rawAuthor = item.path("author").asText("");
@@ -67,37 +65,32 @@ public class BookSearchService {
                             .publisher(item.path("publisher").asText(""))
                             .pubDate(item.path("pubDate").asText(""))
                             .isbn(isbn)
-                            .coverUrl(item.path("cover").asText("")) // 알라딘 커버 이미지
-                            .totalPage(0) // 검색 목록에서는 0 고정, 추가 시 단건 조회로 보완
+                            .coverUrl(item.path("cover").asText(""))
+                            .totalPage(0)
                             .build());
                 }
                 return results;
             }
         } catch (Exception e) {
-            log.error("Error calling Aladin API for query: {}", query, e);
         }
 
-        // Fallback to mock results on error or empty response
         return getMockResults(query);
     }
 
     public Integer getBookPageFromAladin(String isbn) {
         if (aladinApiKey == null || aladinApiKey.isEmpty() || isbn == null || isbn.isEmpty()) {
-            return 0; // fallback
+            return 0;
         }
 
         try {
-            // 알라딘 상품 조회 API (ItemLookUp)
             String url = org.springframework.web.util.UriComponentsBuilder
                     .fromUriString("http://www.aladin.co.kr/ttb/api/ItemLookUp.aspx")
                     .queryParam("ttbkey", aladinApiKey)
-                    .queryParam("itemIdType", "ISBN") // ISBN(10자리 또는 13자리) 기준 검색
+                    .queryParam("itemIdType", "ISBN")
                     .queryParam("ItemId", isbn)
                     .queryParam("output", "js")
                     .queryParam("Version", "20131101")
                     .queryParam("Cover", "Big")
-                    // .queryParam("OptResult", "packing") // packing, ebookList 등 옵션 (페이지수는 기본으로
-                    // 내려옴)
                     .build(false)
                     .toUriString();
 
@@ -112,7 +105,6 @@ public class BookSearchService {
                 }
             }
         } catch (Exception e) {
-            log.error("Error calling Aladin ItemLookUp API for ISBN ({}): {}", isbn, e.getMessage());
         }
 
         return 0;
@@ -123,7 +115,6 @@ public class BookSearchService {
             return false;
         }
 
-        // 제외할 카테고리 키워드
         String[] excludeKeywords = {
                 "북토크",
                 "상품",
@@ -152,12 +143,10 @@ public class BookSearchService {
             return "";
         }
 
-        // 예: "헨리 데이비드 소로 (지은이), 강승영 (옮긴이), 허버트 웬델 글리슨 (사진)"
         String[] parts = rawAuthor.split(",\\s*");
         List<String> formattedParts = new ArrayList<>();
 
         for (String part : parts) {
-            // 정규식이나 단순 indexOf로 역할 분리
             int openParen = part.lastIndexOf('(');
             int closeParen = part.lastIndexOf(')');
 
@@ -165,14 +154,12 @@ public class BookSearchService {
                 String name = part.substring(0, openParen).trim();
                 String role = part.substring(openParen + 1, closeParen).trim();
 
-                // "지은이" -> "저자" 로 변경
                 if ("지은이".equals(role)) {
                     role = "저자";
                 }
 
                 formattedParts.add(role + ": " + name);
             } else {
-                // 괄호가 없는 경우 (기본 저자 취급)
                 formattedParts.add("저자: " + part.trim());
             }
         }

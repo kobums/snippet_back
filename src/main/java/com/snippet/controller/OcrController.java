@@ -28,14 +28,10 @@ public class OcrController {
             @RequestParam("image") MultipartFile image,
             @RequestParam(value = "engine", required = false, defaultValue = "google") String engine) {
 
-        log.info("📝 [OCR] Received OCR request (engine: {}, file: {})", engine, image.getOriginalFilename());
-
         try {
             OcrResponseDto response = ocrService.extractText(image, engine);
-            log.info("✅ [OCR] Text extraction successful");
             return ResponseEntity.ok(response);
         } catch (IOException e) {
-            log.error("❌ [OCR] Failed to extract text: {}", e.getMessage());
             return ResponseEntity.internalServerError().build();
         }
     }

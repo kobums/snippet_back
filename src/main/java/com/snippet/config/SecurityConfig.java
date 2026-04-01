@@ -74,7 +74,6 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         // 환경변수로 관리되는 오리진만 허용 (쉼표로 구분)
         configuration.setAllowedOrigins(List.of(allowedOrigins.split(",")));
-        System.out.println(List.of(allowedOrigins.split(",")));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

@@ -21,7 +21,6 @@ public class NationalLibraryBackupService {
 
     public List<BookSearchDto> searchBooks(String query) {
         if (nlkApiKey == null || nlkApiKey.isEmpty()) {
-            log.info("NLK API key is empty. Returning mock search results for query: {}", query);
             return getMockResults(query);
         }
 
@@ -64,10 +63,8 @@ public class NationalLibraryBackupService {
                 return results;
             }
         } catch (Exception e) {
-            log.error("Error calling NLK API for query: {}", query, e);
         }
 
-        // Fallback to mock results on error or empty response
         return getMockResults(query);
     }
 

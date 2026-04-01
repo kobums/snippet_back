@@ -31,7 +31,6 @@ public class CrawlerService {
         int totalSaved = 0;
 
         for (int page = startPages; page <= pagesToCrawl; page++) {
-            // 알라딘 무한 스크롤 AJAX 엔드포인트
             String url = "https://www.aladin.co.kr/shop/common/wsentence_ajax.aspx?mobile=0&force=1&Page=" + page
                     + "&sort=11&ItemId=0";
             try {
@@ -43,16 +42,13 @@ public class CrawlerService {
                         .header("Accept-Language", "ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3")
                         .get();
 
-                // 문서에 있는 sec1, sec2 형식의 모든 section 탐색
                 Elements sections = doc.select("section[id^=sec]");
                 if (sections.isEmpty()) {
-                    log.info("No more sections found at page {}", page);
                     break;
                 }
 
                 int count = 0;
                 for (Element section : sections) {
-                    // 문장 추출
                     Element textEl = section.selectFirst(".text p");
                     if (textEl == null)
                         continue;
@@ -60,7 +56,6 @@ public class CrawlerService {
                     if (text.isEmpty())
                         continue;
 
-                    // 책 정보 텍스트 (예: 동물 인터넷. 마르틴 비켈스키 지음, 박래선 옮김)
                     Element bookInfoEl = section.selectFirst(".text span a");
                     String rawBookInfo = bookInfoEl != null ? bookInfoEl.text().trim() : "알라딘 소개 도서";
 
@@ -72,10 +67,9 @@ public class CrawlerService {
                         author = rawBookInfo.substring(dotIdx + 2).trim();
                     }
 
-                    // 표지 이미지와 제휴 링크 추출
                     String coverUrl = "";
                     String affiliateUrl = "https://www.aladin.co.kr";
-                    String isbn = "978" + System.currentTimeMillis() % 10000000000L; // Fallback
+                    String isbn = "978" + System.currentTimeMillis() % 10000000000L;
                     String extractedId = null;
 
                     Element coverA = section.selectFirst(".cover a");
@@ -103,7 +97,6 @@ public class CrawlerService {
                         }
                     }
 
-                    // OpenAPI를 통해 상세 정보 (ISBN13 등) 조회
                     if (extractedId != null) {
                         String apiUrl = "http://www.aladin.co.kr/ttb/api/ItemLookUp.aspx?ttbkey=" + ttbKey
                                 + "&itemIdType=ItemId&ItemId=" + extractedId + "&output=js&Version=20131101";
@@ -127,7 +120,6 @@ public class CrawlerService {
                                 }
                             }
                         } catch (Exception e) {
-                            log.error("Failed to fetch book info from Aladin OpenAPI for ItemId: " + extractedId, e);
                         }
                     }
 
@@ -155,19 +147,13 @@ public class CrawlerService {
 
                         snippetRepository.save(snippet);
                         count++;
-                    } else {
-                        log.debug("Snippet already exists. Skipping duplicate.");
                     }
                 }
                 totalSaved += count;
-                log.info("Crawled page {}. Saved {} snippets in this page.", page, count);
 
-                // 알라딘 서버 부하를 방지하기 위해 잠시 대기
                 Thread.sleep(5000);
             } catch (Exception e) {
-                log.error("Failed to crawl Aladin sentences at page {}", page, e);
             }
         }
-        log.info("Finished crawling Aladin sentences. Total saved: {} snippets.", totalSaved);
     }
 }
