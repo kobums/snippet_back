@@ -4,6 +4,7 @@
 - **Spring Boot 3.5.0** / Java 21 / Gradle
 - **MariaDB** + JPA/Hibernate + Flyway 마이그레이션
 - **Spring Security + JWT** (jjwt 0.11.5)
+- **Google Cloud Vision API** (OCR 텍스트 추출)
 - JSoup (웹 크롤링), Spring dotenv, Lombok
 
 ## 패키지 구조
@@ -11,8 +12,8 @@
 ```
 com.snippet
 ├── config/          # SecurityConfig, WebConfig
-├── controller/      # REST API 컨트롤러 (7개)
-├── service/         # 비즈니스 로직 (9개)
+├── controller/      # REST API 컨트롤러 (8개)
+├── service/         # 비즈니스 로직 (10개)
 ├── repository/      # JPA Repository
 ├── entity/          # 도메인 엔티티 (4개)
 ├── dto/             # 요청/응답 DTO
@@ -63,6 +64,9 @@ com.snippet
 ### AdminCrawlerController (`/api/admin/crawl`)
 - `POST /aladin` - 알라딘 문장 크롤링
 
+### OcrController (`/api/ocr`)
+- `POST /` - Google Cloud Vision API를 통한 OCR 텍스트 추출
+
 ## 보안 설정
 - 공개 엔드포인트: `/api/auth/**`, `/api/snippets/**`
 - 나머지 인증 필요 (Bearer JWT)
@@ -77,6 +81,8 @@ V1~V9까지 적용. `src/main/resources/db/migration/` 참조.
 - `ALADIN_API_KEY` - 알라딘 API
 - `KYOBO_PARTNER_ID`, `YES24_PARTNER_ID` - 제휴 마케팅
 - `CORS_ALLOWED_ORIGINS` - CORS 허용 origin
+- `GOOGLE_CLOUD_PROJECT_ID` - Google Cloud 프로젝트 ID (OCR)
+- `GOOGLE_APPLICATION_CREDENTIALS` - Google Cloud 인증 JSON 파일 경로 (OCR)
 
 ## 컨벤션
 - API URL에 하이픈(-) 사용 금지 (camelCase 또는 소문자 연결)
