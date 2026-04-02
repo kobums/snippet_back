@@ -13,6 +13,11 @@ import java.util.List;
 
 public interface SnippetRepository extends JpaRepository<Snippet, Long> {
 
+    // ==================== JOIN FETCH 메서드 (N+1 방지) ====================
+
+    @Query("SELECT s FROM Snippet s JOIN FETCH s.book")
+    List<Snippet> findAllWithBook();
+
     // 개선된 랜덤 조회 - OFFSET 방식 (ORDER BY RAND() 대체)
     @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.type = 'snippet' ORDER BY s.id")
     List<Snippet> findSnippetsWithOffset(Pageable pageable);

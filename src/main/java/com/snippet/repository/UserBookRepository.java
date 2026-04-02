@@ -14,6 +14,14 @@ import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface UserBookRepository extends JpaRepository<UserBook, Long> {
+    // ==================== JOIN FETCH 메서드 (N+1 방지) ====================
+
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book WHERE ub.id = :id")
+    Optional<UserBook> findByIdWithBook(@Param("id") Long id);
+
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book")
+    List<UserBook> findAllWithBook();
+
     @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book WHERE ub.user.id = :userId AND ub.book = :book")
     Optional<UserBook> findByUser_IdAndBook(@Param("userId") Long userId, @Param("book") Book book);
 
@@ -22,6 +30,12 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
 
     @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book WHERE ub.user.id = :userId ORDER BY ub.updateDate DESC")
     List<UserBook> findByUser_IdOrderByUpdateDateDesc(@Param("userId") Long userId);
+
+    /**
+     * 페이지네이션 지원 - updateDate 내림차순 정렬 (JPQL로 변경하여 JOIN FETCH 적용)
+     */
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book WHERE ub.user.id = :userId ORDER BY ub.updateDate DESC")
+    List<UserBook> findByUser_IdPaginatedWithBook(@Param("userId") Long userId, Pageable pageable);
 
     @Query("SELECT COUNT(ub) FROM UserBook ub WHERE ub.user.id = :userId AND ub.status = :status AND ub.updateDate >= :startDate AND ub.updateDate <= :endDate")
     long countByUser_IdAndStatusAndUpdateDateBetween(
@@ -144,13 +158,25 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     Double findAverageReadingDays(@Param("userId") Long userId, @Param("year") int year);
 
     /**
-     * 최장 독서 기록
+     * 최장 독서 기록 (JPQL로 변경하여 JOIN FETCH 적용)
+     * DATEDIFF를 네이티브 함수로 사용하되, JPQL에서 function()으로 호출
      */
-    @Query(value = "SELECT ub.* FROM userbook_tb ub " +
-           "JOIN book_tb b ON ub.ub_book = b.b_id " +
-           "WHERE ub.ub_user = :userId AND ub.ub_status = 'completed' " +
-           "AND YEAR(ub.ub_enddate) = :year " +
-           "ORDER BY DATEDIFF(ub.ub_enddate, ub.ub_startdate) DESC " +
-           "LIMIT :limit", nativeQuery = true)
-    List<UserBook> findLongestReadingBook(@Param("userId") Long userId, @Param("year") int year, @Param("limit") int limit);
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book " +
+           "WHERE ub.user.id = :userId AND ub.status = 'completed' " +
+           "AND YEAR(ub.endDate) = :year " +
+           "ORDER BY function('DATEDIFF', ub.endDate, ub.startDate) DESC")
+    List<UserBook> findLongestReadingBookWithBook(@Param("userId") Long userId, @Param("year") int year, Pageable pageable);
+
+    /**
+     * 대시보드 진행 탭용 조회
+     * - waiting, reading: 날짜 무관 전체 조회
+     * - completed: 해당 월의 완독만 조회
+     */
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book WHERE ub.user.id = :userId " +
+           "AND (ub.status = 'waiting' OR ub.status = 'reading' " +
+           "OR (ub.status = 'completed' AND ub.endDate >= :monthStart AND ub.endDate < :monthEnd))")
+    List<UserBook> findProgressBooks(
+            @Param("userId") Long userId,
+            @Param("monthStart") LocalDateTime monthStart,
+            @Param("monthEnd") LocalDateTime monthEnd);
 }

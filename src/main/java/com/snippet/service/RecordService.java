@@ -27,7 +27,7 @@ public class RecordService {
 
     @Transactional(readOnly = true)
     public List<RecordDto> findAll() {
-        return snippetRepository.findAll().stream()
+        return snippetRepository.findAllWithBook().stream()
                 .map(RecordDto::from)
                 .collect(Collectors.toList());
     }
