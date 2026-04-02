@@ -96,6 +96,36 @@ public class UserBookController {
         return ResponseEntity.ok(userBookService.getUserBooksByMonth(userId, ym.getYear(), ym.getMonthValue()));
     }
 
+    /**
+     * 대시보드 진행 탭용 책 목록 조회
+     * - waiting, reading: 날짜 무관 전체 조회
+     * - completed: 해당 월의 완독만 조회
+     * 파라미터 미입력 시 현재 월 기본값 사용
+     */
+    @GetMapping("/progress")
+    public ResponseEntity<List<UserBookDto>> getProgress(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+        Long userId = userDetails.getUser().getId();
+        YearMonth ym = (year != null && month != null)
+                ? YearMonth.of(year, month)
+                : YearMonth.now();
+        return ResponseEntity.ok(userBookService.getProgressBooks(userId, ym.getYear(), ym.getMonthValue()));
+    }
+
+    /**
+     * 페이지네이션 지원 - 서재용 전체 책 목록 조회 (최신순)
+     */
+    @GetMapping("/all")
+    public ResponseEntity<List<UserBookDto>> getAllPaginated(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(userBookService.getUserBooksPaginated(userId, page, size));
+    }
+
     // ==================== 통계 API ====================
 
     /**

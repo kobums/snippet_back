@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,14 +41,14 @@ public class UserBookService {
 
     @Transactional(readOnly = true)
     public List<UserBookDto> findAll() {
-        return userBookRepository.findAll().stream()
+        return userBookRepository.findAllWithBook().stream()
                 .map(UserBookDto::from)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public UserBookDto findById(Long id) {
-        UserBook userBook = userBookRepository.findById(id)
+        UserBook userBook = userBookRepository.findByIdWithBook(id)
                 .orElseThrow(() -> new IllegalArgumentException("UserBook not found: " + id));
         return UserBookDto.from(userBook);
     }
@@ -163,7 +165,7 @@ public class UserBookService {
     @Transactional
     public UserBookDto update(Long id, Long userId, String type, String status,
             Integer readPage, String startDateStr, String endDateStr) {
-        UserBook userBook = userBookRepository.findById(id)
+        UserBook userBook = userBookRepository.findByIdWithBook(id)
                 .orElseThrow(() -> new IllegalArgumentException("UserBook not found: " + id));
 
         if (!userBook.getUser().getId().equals(userId)) {
@@ -183,7 +185,16 @@ public class UserBookService {
             }
         }
         if (status != null) {
+            String previousStatus = userBook.getStatus();
             userBook.updateStatus(status);
+
+            // 읽는중으로 변경: 대기중에서 변경되거나 시작일이 없으면 현재 시각으로 설정
+            if ("reading".equals(status)) {
+                if ("waiting".equals(previousStatus) || userBook.getStartDate() == null) {
+                    userBook.updateStartDate(LocalDateTime.now());
+                }
+            }
+
             if ("completed".equals(status) || "dropped".equals(status)) {
                 userBook.updateEndDate(LocalDateTime.now());
                 if ("completed".equals(status)) {
@@ -224,6 +235,17 @@ public class UserBookService {
     }
 
     /**
+     * 페이지네이션 지원 - 최신순 정렬
+     */
+    @Transactional(readOnly = true)
+    public List<UserBookDto> getUserBooksPaginated(Long userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userBookRepository.findByUser_IdPaginatedWithBook(userId, pageable).stream()
+                .map(UserBookDto::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 해당 월에 활동이 있는 책 조회 (활동 기간 겹침 방식)
      *
      * - reading/completed/dropped: startDate ~ endDate 가 해당 월과 겹치면 포함
@@ -243,6 +265,22 @@ public class UserBookService {
 
         return java.util.stream.Stream.concat(overlapping.stream(), waitingInMonth.stream())
                 .distinct()
+                .map(UserBookDto::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 대시보드 진행 탭용 책 조회
+     * - waiting, reading: 날짜 무관 전체 조회
+     * - completed: 해당 월의 완독만 조회
+     */
+    @Transactional(readOnly = true)
+    public List<UserBookDto> getProgressBooks(Long userId, int year, int month) {
+        java.time.YearMonth yearMonth = java.time.YearMonth.of(year, month);
+        LocalDateTime monthStart = yearMonth.atDay(1).atStartOfDay();
+        LocalDateTime monthEnd = yearMonth.atEndOfMonth().atTime(23, 59, 59);
+
+        return userBookRepository.findProgressBooks(userId, monthStart, monthEnd).stream()
                 .map(UserBookDto::from)
                 .collect(Collectors.toList());
     }
@@ -366,7 +404,8 @@ public class UserBookService {
                 .orElse("없음");
 
         // 최장 독서 기록
-        List<UserBook> longestBooks = userBookRepository.findLongestReadingBook(userId, year, 1);
+        Pageable pageable = PageRequest.of(0, 1);
+        List<UserBook> longestBooks = userBookRepository.findLongestReadingBookWithBook(userId, year, pageable);
         int longestDays = 0;
         String longestBook = "없음";
         if (!longestBooks.isEmpty()) {
