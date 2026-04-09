@@ -174,11 +174,6 @@ public class UserBookService {
 
         if (type != null) {
             userBook.updateType(type);
-            // 반납 완료: status를 completed로, endDate를 현재 시각으로 자동 설정
-            if ("return".equals(type)) {
-                userBook.updateStatus("completed");
-                userBook.updateEndDate(LocalDateTime.now());
-            }
             // wish로 변경: status를 none으로 강제
             if ("wish".equals(type)) {
                 userBook.updateStatus("none");
