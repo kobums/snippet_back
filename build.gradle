@@ -37,6 +37,7 @@ dependencies {
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-mysql'
 	implementation 'org.jsoup:jsoup:1.15.3'
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
 	// Google Cloud Vision API for OCR
 	implementation 'com.google.cloud:google-cloud-vision:3.78.0'
 	compileOnly 'org.projectlombok:lombok'

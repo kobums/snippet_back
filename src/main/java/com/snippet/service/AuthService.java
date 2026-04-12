@@ -2,12 +2,16 @@ package com.snippet.service;
 
 import com.snippet.dto.auth.AuthDto;
 import com.snippet.entity.User;
+import com.snippet.exception.EmailNotVerifiedException;
 import com.snippet.repository.UserRepository;
 import com.snippet.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -16,9 +20,10 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final EmailService emailService;
 
     @Transactional
-    public AuthDto.AuthResponse register(AuthDto.RegisterRequest request) {
+    public AuthDto.RegisterResponse register(AuthDto.RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
@@ -29,10 +34,13 @@ public class AuthService {
                 .name(request.getName())
                 .build();
 
-        User savedUser = userRepository.save(user);
-        String token = jwtTokenProvider.createToken(savedUser.getEmail());
+        String code = generateCode();
+        user.setVerificationCode(code, LocalDateTime.now().plusMinutes(10));
+        userRepository.save(user);
 
-        return new AuthDto.AuthResponse(savedUser.getId(), savedUser.getEmail(), savedUser.getName(), token);
+        emailService.sendVerificationCode(request.getEmail(), code);
+
+        return new AuthDto.RegisterResponse(request.getEmail(), "인증 코드가 이메일로 발송되었습니다.");
     }
 
     @Transactional(readOnly = true)
@@ -44,8 +52,51 @@ public class AuthService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        String token = jwtTokenProvider.createToken(user.getEmail());
+        if (!user.isVerified()) {
+            throw new EmailNotVerifiedException("이메일 인증이 필요합니다.");
+        }
 
+        String token = jwtTokenProvider.createToken(user.getEmail());
+        return new AuthDto.AuthResponse(user.getId(), user.getEmail(), user.getName(), token);
+    }
+
+    @Transactional
+    public void sendVerificationCode(AuthDto.SendCodeRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일입니다."));
+
+        if (user.isVerified()) {
+            throw new IllegalArgumentException("이미 인증된 이메일입니다.");
+        }
+
+        String code = generateCode();
+        user.setVerificationCode(code, LocalDateTime.now().plusMinutes(10));
+        userRepository.save(user);
+
+        emailService.sendVerificationCode(request.getEmail(), code);
+    }
+
+    @Transactional
+    public AuthDto.AuthResponse verifyCode(AuthDto.VerifyCodeRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일입니다."));
+
+        if (user.isVerified()) {
+            throw new IllegalArgumentException("이미 인증된 이메일입니다.");
+        }
+
+        if (user.getVerificationCode() == null || !user.getVerificationCode().equals(request.getCode())) {
+            throw new IllegalArgumentException("인증 코드가 올바르지 않습니다.");
+        }
+
+        if (user.getCodeExpiresAt() == null || LocalDateTime.now().isAfter(user.getCodeExpiresAt())) {
+            throw new IllegalArgumentException("인증 코드가 만료되었습니다.");
+        }
+
+        user.verify();
+        userRepository.save(user);
+
+        String token = jwtTokenProvider.createToken(user.getEmail());
         return new AuthDto.AuthResponse(user.getId(), user.getEmail(), user.getName(), token);
     }
 
@@ -54,5 +105,11 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
         userRepository.delete(user);
+    }
+
+    private String generateCode() {
+        SecureRandom random = new SecureRandom();
+        int code = 100000 + random.nextInt(900000);
+        return String.valueOf(code);
     }
 }

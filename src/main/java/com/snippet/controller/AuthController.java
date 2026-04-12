@@ -16,29 +16,34 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthDto.AuthResponse> register(@RequestBody AuthDto.RegisterRequest request) {
-        AuthDto.AuthResponse response = authService.register(request);
+    public ResponseEntity<AuthDto.RegisterResponse> register(@RequestBody AuthDto.RegisterRequest request) {
+        AuthDto.RegisterResponse response = authService.register(request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthDto.AuthResponse> login(@RequestBody AuthDto.LoginRequest request) {
         AuthDto.AuthResponse response = authService.login(request);
-        // 향후 JWT 발급 로직 연동
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/sendcode")
+    public ResponseEntity<Void> sendCode(@RequestBody AuthDto.SendCodeRequest request) {
+        authService.sendVerificationCode(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/verifycode")
+    public ResponseEntity<AuthDto.AuthResponse> verifyCode(@RequestBody AuthDto.VerifyCodeRequest request) {
+        AuthDto.AuthResponse response = authService.verifyCode(request);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/account")
     public ResponseEntity<Void> deleteAccount(@RequestHeader("Authorization") String authHeader) {
-        // Bearer 토큰에서 실제 토큰 추출
         String token = authHeader.replace("Bearer ", "");
-
-        // 토큰에서 사용자 이메일 추출
         String email = jwtTokenProvider.getUserEmailFromToken(token);
-
-        // 회원 탈퇴 처리
         authService.deleteAccount(email);
-
         return ResponseEntity.ok().build();
     }
 }

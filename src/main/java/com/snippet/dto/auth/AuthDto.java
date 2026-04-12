@@ -16,6 +16,13 @@ public class AuthDto {
     }
 
     @Getter
+    @AllArgsConstructor
+    public static class RegisterResponse {
+        private String email;
+        private String message;
+    }
+
+    @Getter
     @NoArgsConstructor
     @AllArgsConstructor
     public static class LoginRequest {
@@ -30,5 +37,20 @@ public class AuthDto {
         private String email;
         private String name;
         private String token;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SendCodeRequest {
+        private String email;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class VerifyCodeRequest {
+        private String email;
+        private String code;
     }
 }

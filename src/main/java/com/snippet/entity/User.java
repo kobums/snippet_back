@@ -31,6 +31,15 @@ public class User {
     @Column(name = "u_createdate", nullable = false, updatable = false)
     private LocalDateTime createDate;
 
+    @Column(name = "u_verified", nullable = false)
+    private boolean verified = false;
+
+    @Column(name = "u_verification_code", length = 6)
+    private String verificationCode;
+
+    @Column(name = "u_code_expires_at")
+    private LocalDateTime codeExpiresAt;
+
     @PrePersist
     protected void onCreate() {
         this.createDate = LocalDateTime.now();
@@ -41,11 +50,23 @@ public class User {
         this.email = email;
         this.password = password;
         this.name = name;
+        this.verified = false;
     }
 
     public void update(String email, String password, String name) {
         if (email != null) this.email = email;
         if (password != null) this.password = password;
         if (name != null) this.name = name;
+    }
+
+    public void setVerificationCode(String code, LocalDateTime expiresAt) {
+        this.verificationCode = code;
+        this.codeExpiresAt = expiresAt;
+    }
+
+    public void verify() {
+        this.verified = true;
+        this.verificationCode = null;
+        this.codeExpiresAt = null;
     }
 }
