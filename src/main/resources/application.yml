@@ -72,6 +72,9 @@ logging:
 aladin:
   api-key: ${ALADIN_API_KEY:}
 
+data4library:
+  auth-key: ${DATA4LIBRARY_AUTH_KEY:}
+
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
 

@@ -1,9 +1,11 @@
 package com.snippet.controller;
 
 import com.snippet.dto.BookSearchDto;
+import com.snippet.dto.PopularBookDto;
 import com.snippet.entity.Book;
 import com.snippet.service.BookSearchService;
 import com.snippet.service.BookService;
+import com.snippet.service.PopularBookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,23 @@ public class BookController {
 
     private final BookService bookService;
     private final BookSearchService bookSearchService;
+    private final PopularBookService popularBookService;
+
+    @GetMapping("/popular")
+    public ResponseEntity<List<PopularBookDto>> getPopularBooks(
+            @RequestParam(defaultValue = "") String startDt,
+            @RequestParam(defaultValue = "") String endDt,
+            @RequestParam(defaultValue = "") String kdc,
+            @RequestParam(defaultValue = "") String dtlKdc,
+            @RequestParam(defaultValue = "") String age,
+            @RequestParam(defaultValue = "") String gender,
+            @RequestParam(defaultValue = "") String region,
+            @RequestParam(defaultValue = "") String dtlRegion,
+            @RequestParam(defaultValue = "1") int pageNo,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        return ResponseEntity.ok(popularBookService.getPopularBooks(
+                startDt, endDt, kdc, dtlKdc, age, gender, region, dtlRegion, pageNo, pageSize));
+    }
 
     @GetMapping("/search")
     public ResponseEntity<List<BookSearchDto>> searchBooks(
