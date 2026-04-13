@@ -15,27 +15,23 @@ public class AuthController {
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
 
+    /** 가입 전 이메일 인증코드 발송 */
+    @PostMapping("/emailcode")
+    public ResponseEntity<Void> sendEmailCode(@RequestBody AuthDto.EmailCodeRequest request) {
+        authService.sendEmailCode(request);
+        return ResponseEntity.ok().build();
+    }
+
+    /** 인증코드 검증 후 회원가입 (토큰 즉시 반환) */
     @PostMapping("/register")
-    public ResponseEntity<AuthDto.RegisterResponse> register(@RequestBody AuthDto.RegisterRequest request) {
-        AuthDto.RegisterResponse response = authService.register(request);
+    public ResponseEntity<AuthDto.AuthResponse> register(@RequestBody AuthDto.RegisterRequest request) {
+        AuthDto.AuthResponse response = authService.register(request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthDto.AuthResponse> login(@RequestBody AuthDto.LoginRequest request) {
         AuthDto.AuthResponse response = authService.login(request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/sendcode")
-    public ResponseEntity<Void> sendCode(@RequestBody AuthDto.SendCodeRequest request) {
-        authService.sendVerificationCode(request);
-        return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/verifycode")
-    public ResponseEntity<AuthDto.AuthResponse> verifyCode(@RequestBody AuthDto.VerifyCodeRequest request) {
-        AuthDto.AuthResponse response = authService.verifyCode(request);
         return ResponseEntity.ok(response);
     }
 

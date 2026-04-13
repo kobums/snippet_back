@@ -2,7 +2,6 @@ package com.snippet.service;
 
 import com.snippet.dto.auth.AuthDto;
 import com.snippet.entity.User;
-import com.snippet.exception.EmailNotVerifiedException;
 import com.snippet.repository.UserRepository;
 import com.snippet.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -21,11 +19,28 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final EmailService emailService;
+    private final EmailVerificationStore verificationStore;
 
+    /** 가입 전 이메일로 인증코드 발송 */
+    public void sendEmailCode(AuthDto.EmailCodeRequest request) {
+        String email = request.getEmail();
+        if (userRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+        String code = generateCode();
+        verificationStore.save(email, code, 10);
+        emailService.sendVerificationCode(email, code);
+    }
+
+    /** 인증코드 검증 후 회원가입 */
     @Transactional
-    public AuthDto.RegisterResponse register(AuthDto.RegisterRequest request) {
+    public AuthDto.AuthResponse register(AuthDto.RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+
+        if (request.getCode() == null || !verificationStore.verify(request.getEmail(), request.getCode())) {
+            throw new IllegalArgumentException("인증 코드가 올바르지 않거나 만료되었습니다.");
         }
 
         User user = User.builder()
@@ -34,13 +49,11 @@ public class AuthService {
                 .name(request.getName())
                 .build();
 
-        String code = generateCode();
-        user.setVerificationCode(code, LocalDateTime.now().plusMinutes(10));
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        verificationStore.remove(request.getEmail());
 
-        emailService.sendVerificationCode(request.getEmail(), code);
-
-        return new AuthDto.RegisterResponse(request.getEmail(), "인증 코드가 이메일로 발송되었습니다.");
+        String token = jwtTokenProvider.createToken(savedUser.getEmail());
+        return new AuthDto.AuthResponse(savedUser.getId(), savedUser.getEmail(), savedUser.getName(), token);
     }
 
     @Transactional(readOnly = true)
@@ -51,50 +64,6 @@ public class AuthService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
-
-        if (!user.isVerified()) {
-            throw new EmailNotVerifiedException("이메일 인증이 필요합니다.");
-        }
-
-        String token = jwtTokenProvider.createToken(user.getEmail());
-        return new AuthDto.AuthResponse(user.getId(), user.getEmail(), user.getName(), token);
-    }
-
-    @Transactional
-    public void sendVerificationCode(AuthDto.SendCodeRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일입니다."));
-
-        if (user.isVerified()) {
-            throw new IllegalArgumentException("이미 인증된 이메일입니다.");
-        }
-
-        String code = generateCode();
-        user.setVerificationCode(code, LocalDateTime.now().plusMinutes(10));
-        userRepository.save(user);
-
-        emailService.sendVerificationCode(request.getEmail(), code);
-    }
-
-    @Transactional
-    public AuthDto.AuthResponse verifyCode(AuthDto.VerifyCodeRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일입니다."));
-
-        if (user.isVerified()) {
-            throw new IllegalArgumentException("이미 인증된 이메일입니다.");
-        }
-
-        if (user.getVerificationCode() == null || !user.getVerificationCode().equals(request.getCode())) {
-            throw new IllegalArgumentException("인증 코드가 올바르지 않습니다.");
-        }
-
-        if (user.getCodeExpiresAt() == null || LocalDateTime.now().isAfter(user.getCodeExpiresAt())) {
-            throw new IllegalArgumentException("인증 코드가 만료되었습니다.");
-        }
-
-        user.verify();
-        userRepository.save(user);
 
         String token = jwtTokenProvider.createToken(user.getEmail());
         return new AuthDto.AuthResponse(user.getId(), user.getEmail(), user.getName(), token);

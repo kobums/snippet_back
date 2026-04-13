@@ -43,6 +43,18 @@ spring:
     validate-on-migrate: false
     out-of-order: true
 
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 affiliate:
   kyobo:
     partner-id: ${KYOBO_PARTNER_ID:}
@@ -71,16 +83,3 @@ naver:
 google:
   application:
     credentials: ${GOOGLE_APPLICATION_CREDENTIALS:}
-
-spring:
-  mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true

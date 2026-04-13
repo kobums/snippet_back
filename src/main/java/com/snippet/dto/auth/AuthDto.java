@@ -13,6 +13,7 @@ public class AuthDto {
         private String email;
         private String password;
         private String name;
+        private String code;
     }
 
     @Getter
@@ -20,6 +21,13 @@ public class AuthDto {
     public static class RegisterResponse {
         private String email;
         private String message;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EmailCodeRequest {
+        private String email;
     }
 
     @Getter
