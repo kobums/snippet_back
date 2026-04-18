@@ -22,8 +22,10 @@ public class SnippetController {
     @GetMapping("/cards")
     public ResponseEntity<List<SnippetCardDto>> getCards(
             @RequestParam(defaultValue = "10") int count,
-            @RequestParam(required = false) List<Long> excludeIds) {
-        return ResponseEntity.ok(snippetService.getCards(count, excludeIds));
+            @RequestParam(required = false) List<Long> excludeIds,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long userId = userDetails != null ? userDetails.getUser().getId() : null;
+        return ResponseEntity.ok(snippetService.getCards(count, excludeIds, userId));
     }
 
     @GetMapping("/archive")

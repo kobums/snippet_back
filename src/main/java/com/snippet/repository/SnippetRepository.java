@@ -62,4 +62,25 @@ public interface SnippetRepository extends JpaRepository<Snippet, Long> {
     @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.user = :user AND s.createDate BETWEEN :start AND :end ORDER BY s.createDate DESC")
     List<Snippet> findByUserAndCreateDateBetweenOrderByCreateDateDesc(
             @Param("user") User user, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // ==================== 추천 알고리즘용 쿼리 ====================
+
+    @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.type = 'snippet' AND s.book.category = :category AND s.id NOT IN :excludeIds ORDER BY s.id")
+    List<Snippet> findSnippetsByCategoryExcluding(
+            @Param("category") String category,
+            @Param("excludeIds") List<Long> excludeIds,
+            Pageable pageable);
+
+    @Query("SELECT COUNT(s) FROM Snippet s WHERE s.type = 'snippet' AND s.book.category = :category AND s.id NOT IN :excludeIds")
+    long countSnippetsByCategoryExcluding(
+            @Param("category") String category,
+            @Param("excludeIds") List<Long> excludeIds);
+
+    @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.type = 'snippet' AND s.book.category = :category ORDER BY s.id")
+    List<Snippet> findSnippetsByCategory(
+            @Param("category") String category,
+            Pageable pageable);
+
+    @Query("SELECT s.id FROM Snippet s WHERE s.type = 'snippet' AND s.book.id IN :bookIds")
+    List<Long> findSnippetIdsByBookIds(@Param("bookIds") List<Long> bookIds);
 }

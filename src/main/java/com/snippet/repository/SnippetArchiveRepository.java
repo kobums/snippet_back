@@ -17,4 +17,10 @@ public interface SnippetArchiveRepository extends JpaRepository<SnippetArchive, 
     boolean existsByUserAndSnippet(User user, Snippet snippet);
 
     void deleteByUserAndSnippet(User user, Snippet snippet);
+
+    @Query("SELECT sa.snippet.id FROM SnippetArchive sa WHERE sa.user = :user")
+    List<Long> findSnippetIdsByUser(@Param("user") User user);
+
+    @Query("SELECT sa.snippet.book.category FROM SnippetArchive sa WHERE sa.user = :user AND sa.snippet.book.category IS NOT NULL")
+    List<String> findArchivedCategoriesByUser(@Param("user") User user);
 }

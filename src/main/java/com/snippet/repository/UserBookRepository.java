@@ -179,4 +179,12 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
             @Param("userId") Long userId,
             @Param("monthStart") LocalDateTime monthStart,
             @Param("monthEnd") LocalDateTime monthEnd);
+
+    // ==================== 추천 알고리즘용 쿼리 ====================
+
+    @Query("SELECT ub.book.id FROM UserBook ub WHERE ub.user.id = :userId")
+    List<Long> findBookIdsByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT ub.book.category FROM UserBook ub WHERE ub.user.id = :userId AND ub.book.category IS NOT NULL")
+    List<String> findCategoriesByUserId(@Param("userId") Long userId);
 }
