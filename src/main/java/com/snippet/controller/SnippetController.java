@@ -1,6 +1,7 @@
 package com.snippet.controller;
 
 import com.snippet.dto.SnippetArchiveDto;
+import com.snippet.dto.SnippetArchiveRequestDto;
 import com.snippet.dto.SnippetCardDto;
 import com.snippet.security.CustomUserDetails;
 import com.snippet.service.SnippetService;
@@ -10,7 +11,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/snippets")
@@ -38,11 +38,9 @@ public class SnippetController {
     @PostMapping("/archive")
     public ResponseEntity<Long> addArchive(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody Map<String, Long> body) {
+            @RequestBody SnippetArchiveRequestDto request) {
         Long userId = userDetails.getUser().getId();
-        Long snippetId = body.get("snippetId");
-        Long archiveId = snippetService.addArchive(userId, snippetId);
-        return ResponseEntity.ok(archiveId);
+        return ResponseEntity.ok(snippetService.addArchive(userId, request.getSnippetId()));
     }
 
     @DeleteMapping("/archive/{snippetId}")
