@@ -95,39 +95,6 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     List<Object[]> findMonthlyStatsIntegrated(@Param("userId") Long userId, @Param("year") int year);
 
     /**
-     * 월별 완료 권수 (개별 쿼리 - 하위 호환성)
-     */
-    @Deprecated
-    @Query("SELECT MONTH(ub.endDate) as month, COUNT(ub) as count " +
-           "FROM UserBook ub " +
-           "WHERE ub.user.id = :userId AND ub.status = 'completed' " +
-           "AND YEAR(ub.endDate) = :year " +
-           "GROUP BY MONTH(ub.endDate)")
-    List<Object[]> findMonthlyCompletedCount(@Param("userId") Long userId, @Param("year") int year);
-
-    /**
-     * 월별 읽은 페이지 수 (개별 쿼리 - 하위 호환성)
-     */
-    @Deprecated
-    @Query("SELECT MONTH(ub.endDate) as month, SUM(ub.book.totalPage) as pages " +
-           "FROM UserBook ub " +
-           "WHERE ub.user.id = :userId AND ub.status = 'completed' " +
-           "AND YEAR(ub.endDate) = :year " +
-           "GROUP BY MONTH(ub.endDate)")
-    List<Object[]> findMonthlyTotalPages(@Param("userId") Long userId, @Param("year") int year);
-
-    /**
-     * 월별 카테고리별 권수 (개별 쿼리 - 하위 호환성)
-     */
-    @Deprecated
-    @Query("SELECT MONTH(ub.endDate) as month, ub.book.category, COUNT(ub) " +
-           "FROM UserBook ub " +
-           "WHERE ub.user.id = :userId AND ub.status = 'completed' " +
-           "AND YEAR(ub.endDate) = :year AND ub.book.category IS NOT NULL " +
-           "GROUP BY MONTH(ub.endDate), ub.book.category")
-    List<Object[]> findMonthlyCategoryCount(@Param("userId") Long userId, @Param("year") int year);
-
-    /**
      * 연도별 완료 권수 및 페이지 수
      */
     @Query("SELECT YEAR(ub.endDate) as year, COUNT(ub) as count, SUM(ub.book.totalPage) as pages " +

@@ -31,15 +31,6 @@ public interface SnippetRepository extends JpaRepository<Snippet, Long> {
     @Query("SELECT COUNT(s) FROM Snippet s WHERE s.type = 'snippet' AND s.id NOT IN :excludeIds")
     long countSnippetCardsExcluding(@Param("excludeIds") List<Long> excludeIds);
 
-    // 기존 메서드 (하위 호환성 유지, 추후 제거 예정)
-    @Deprecated
-    @Query(value = "SELECT * FROM record_tb WHERE r_id NOT IN (:excludeIds) AND r_type = 'snippet' ORDER BY RAND() LIMIT :count", nativeQuery = true)
-    List<Snippet> findRandomSnippets(@Param("count") int count, @Param("excludeIds") List<Long> excludeIds);
-
-    @Deprecated
-    @Query(value = "SELECT * FROM record_tb WHERE r_type = 'snippet' ORDER BY RAND() LIMIT :count", nativeQuery = true)
-    List<Snippet> findRandomSnippets(@Param("count") int count);
-
     @Query("SELECT DISTINCT s FROM Snippet s JOIN FETCH s.book WHERE s.id IN :ids")
     List<Snippet> findByIdIn(@Param("ids") List<Long> ids);
 
@@ -75,11 +66,6 @@ public interface SnippetRepository extends JpaRepository<Snippet, Long> {
     long countSnippetsByCategoryExcluding(
             @Param("category") String category,
             @Param("excludeIds") List<Long> excludeIds);
-
-    @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.type = 'snippet' AND s.book.category = :category ORDER BY s.id")
-    List<Snippet> findSnippetsByCategory(
-            @Param("category") String category,
-            Pageable pageable);
 
     @Query("SELECT s.id FROM Snippet s WHERE s.type = 'snippet' AND s.book.id IN :bookIds")
     List<Long> findSnippetIdsByBookIds(@Param("bookIds") List<Long> bookIds);

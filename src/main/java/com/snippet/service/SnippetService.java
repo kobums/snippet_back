@@ -14,7 +14,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,7 +32,6 @@ public class SnippetService {
     private final SnippetArchiveRepository snippetArchiveRepository;
     private final UserBookRepository userBookRepository;
     private final UserRepository userRepository;
-    private final Random random = new Random();
 
     public List<SnippetCardDto> getCards(int count, List<Long> excludeIds, Long userId) {
         if (userId != null) {
@@ -58,9 +63,9 @@ public class SnippetService {
         // 선호 카테고리 계산 (아카이브 가중치 2, 서재 가중치 1)
         Map<String, Integer> categoryScore = new LinkedHashMap<>();
         snippetArchiveRepository.findArchivedCategoriesByUser(user)
-                .forEach(c -> categoryScore.merge(c, 2, (a, b) -> a + b));
+                .forEach(c -> categoryScore.merge(c, 2, Integer::sum));
         userBookRepository.findCategoriesByUserId(userId)
-                .forEach(c -> categoryScore.merge(c, 1, (a, b) -> a + b));
+                .forEach(c -> categoryScore.merge(c, 1, Integer::sum));
 
         List<String> rankedCategories = categoryScore.entrySet().stream()
                 .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
@@ -78,11 +83,9 @@ public class SnippetService {
             long available = snippetRepository.countSnippetsByCategoryExcluding(category, finalExcludeIds);
             if (available == 0) continue;
 
-            int maxPage = (int) Math.ceil((double) available / needed) - 1;
-            int randomPage = maxPage > 0 ? random.nextInt(maxPage + 1) : 0;
-
+            int page = randomPage(available, needed);
             List<Snippet> batch = snippetRepository.findSnippetsByCategoryExcluding(
-                    category, finalExcludeIds, PageRequest.of(randomPage, needed));
+                    category, finalExcludeIds, PageRequest.of(page, needed));
             batch.forEach(s -> {
                 result.add(SnippetCardDto.from(s));
                 finalExcludeIds.add(s.getId());
@@ -91,36 +94,34 @@ public class SnippetService {
 
         // 부족하면 랜덤으로 채우기
         if (result.size() < count) {
-            int remaining = count - result.size();
-            result.addAll(getRandomCards(remaining, finalExcludeIds));
+            result.addAll(getRandomCards(count - result.size(), finalExcludeIds));
         }
 
         return result;
     }
 
-    // ==================== 기존 랜덤 조회 ====================
+    // ==================== 랜덤 조회 ====================
 
     private List<SnippetCardDto> getRandomCards(int count, List<Long> excludeIds) {
         if (excludeIds == null || excludeIds.isEmpty()) {
             long totalCount = snippetRepository.countSnippetCards();
             if (totalCount == 0) return List.of();
-
-            int maxPage = (int) Math.ceil((double) totalCount / count) - 1;
-            int randomPage = maxPage > 0 ? random.nextInt(maxPage + 1) : 0;
-
-            return snippetRepository.findSnippetsWithOffset(PageRequest.of(randomPage, count))
+            return snippetRepository.findSnippetsWithOffset(PageRequest.of(randomPage(totalCount, count), count))
                     .stream().map(SnippetCardDto::from).toList();
         }
 
         long totalCount = snippetRepository.countSnippetCardsExcluding(excludeIds);
         if (totalCount == 0) return List.of();
-
-        int maxPage = (int) Math.ceil((double) totalCount / count) - 1;
-        int randomPage = maxPage > 0 ? random.nextInt(maxPage + 1) : 0;
-
-        return snippetRepository.findSnippetsWithOffsetExcluding(excludeIds, PageRequest.of(randomPage, count))
+        return snippetRepository.findSnippetsWithOffsetExcluding(excludeIds, PageRequest.of(randomPage(totalCount, count), count))
                 .stream().map(SnippetCardDto::from).toList();
     }
+
+    private int randomPage(long totalCount, int pageSize) {
+        int maxPage = (int) Math.ceil((double) totalCount / pageSize) - 1;
+        return maxPage > 0 ? ThreadLocalRandom.current().nextInt(maxPage + 1) : 0;
+    }
+
+    // ==================== 아카이브 ====================
 
     public List<SnippetArchiveDto> getArchive(Long userId) {
         User user = userRepository.findById(userId)
@@ -139,14 +140,13 @@ public class SnippetService {
                 .orElseThrow(() -> new IllegalArgumentException("스니펫을 찾을 수 없습니다"));
 
         if (snippetArchiveRepository.existsByUserAndSnippet(user, snippet)) {
-            return null;
+            throw new IllegalStateException("이미 아카이브된 스니펫입니다");
         }
 
-        SnippetArchive archive = SnippetArchive.builder()
+        return snippetArchiveRepository.save(SnippetArchive.builder()
                 .user(user)
                 .snippet(snippet)
-                .build();
-        return snippetArchiveRepository.save(archive).getId();
+                .build()).getId();
     }
 
     @Transactional
