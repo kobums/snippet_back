@@ -35,6 +35,15 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<AuthDto.AuthResponse> me(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+        if (!jwtTokenProvider.validateToken(token)) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(authService.getMe(token));
+    }
+
     @DeleteMapping("/account")
     public ResponseEntity<Void> deleteAccount(@RequestHeader("Authorization") String authHeader) {
         String token = authHeader.replace("Bearer ", "");
