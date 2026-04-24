@@ -63,6 +63,16 @@ public class ReadingSessionService {
     }
 
     @Transactional(readOnly = true)
+    public List<ReadingSessionDto> getAll(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+        return sessionRepository.findAllByUser(user)
+                .stream()
+                .map(ReadingSessionDto::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public ReadingSessionStatsDto getStats(Long userId, Long userBookId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));

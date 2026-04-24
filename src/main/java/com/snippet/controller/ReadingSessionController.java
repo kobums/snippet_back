@@ -19,6 +19,13 @@ public class ReadingSessionController {
 
     private final ReadingSessionService sessionService;
 
+    @GetMapping
+    public ResponseEntity<List<ReadingSessionDto>> getAll(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(
+                sessionService.getAll(userDetails.getUser().getId()));
+    }
+
     @PostMapping
     public ResponseEntity<Long> create(
             @AuthenticationPrincipal CustomUserDetails userDetails,

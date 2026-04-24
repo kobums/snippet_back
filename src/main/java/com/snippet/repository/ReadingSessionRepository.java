@@ -13,6 +13,9 @@ import java.util.List;
 @Repository
 public interface ReadingSessionRepository extends JpaRepository<ReadingSession, Long> {
 
+    @Query("SELECT rs FROM ReadingSession rs JOIN FETCH rs.book WHERE rs.user = :user ORDER BY rs.sessionDate DESC")
+    List<ReadingSession> findAllByUser(@Param("user") User user);
+
     @Query("SELECT rs FROM ReadingSession rs JOIN FETCH rs.book WHERE rs.user = :user AND rs.userBook.id = :userBookId ORDER BY rs.sessionDate DESC")
     List<ReadingSession> findByUserAndUserBookIdWithBook(@Param("user") User user, @Param("userBookId") Long userBookId);
 
