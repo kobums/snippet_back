@@ -11,6 +11,7 @@ public class ReadingSessionDto {
     private Long userBookId;
     private Long bookId;
     private String bookTitle;
+    private String bookAuthor;
     private String bookCoverUrl;
     private Integer durationSeconds;
     private Integer startPage;
@@ -26,6 +27,7 @@ public class ReadingSessionDto {
                 .userBookId(rs.getUserBook().getId())
                 .bookId(rs.getBook().getId())
                 .bookTitle(rs.getBook().getTitle())
+                .bookAuthor(rs.getBook().getAuthor())
                 .bookCoverUrl(rs.getBook().getCoverUrl())
                 .durationSeconds(rs.getDurationSeconds())
                 .startPage(rs.getStartPage())
