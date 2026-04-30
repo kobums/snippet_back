@@ -26,13 +26,18 @@ public class UserBookController {
     private final UserBookService userBookService;
 
     @GetMapping
-    public ResponseEntity<List<UserBookDto>> getAll() {
-        return ResponseEntity.ok(userBookService.findAll());
+    public ResponseEntity<List<UserBookDto>> getAll(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(userBookService.getUserBooks(userId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserBookDto> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(userBookService.findById(id));
+    public ResponseEntity<UserBookDto> getById(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id) {
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(userBookService.findById(id, userId));
     }
 
     @PostMapping
@@ -75,8 +80,11 @@ public class UserBookController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        userBookService.delete(id);
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id) {
+        Long userId = userDetails.getUser().getId();
+        userBookService.delete(id, userId);
         return ResponseEntity.ok().build();
     }
 

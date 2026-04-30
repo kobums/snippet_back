@@ -36,6 +36,15 @@ public interface SnippetRepository extends JpaRepository<Snippet, Long> {
 
     boolean existsByBookAndText(com.snippet.entity.Book book, String text);
 
+    @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.user = :user ORDER BY s.createDate DESC")
+    List<Snippet> findByUserWithBook(@Param("user") User user);
+
+    @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.book = :book AND s.user = :user ORDER BY s.createDate DESC")
+    List<Snippet> findByBookAndUserOrderByCreateDateDesc(@Param("book") com.snippet.entity.Book book, @Param("user") User user);
+
+    @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.book = :book AND s.user = :user AND s.type = :type ORDER BY s.createDate DESC")
+    List<Snippet> findByBookAndUserAndTypeOrderByCreateDateDesc(@Param("book") com.snippet.entity.Book book, @Param("user") User user, @Param("type") String type);
+
     @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.book = :book ORDER BY s.createDate DESC")
     List<Snippet> findByBookOrderByCreateDateDesc(@Param("book") com.snippet.entity.Book book);
 

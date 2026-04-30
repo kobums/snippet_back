@@ -26,16 +26,21 @@ public class RecordService {
     private final SnippetRepository snippetRepository;
 
     @Transactional(readOnly = true)
-    public List<RecordDto> findAll() {
-        return snippetRepository.findAllWithBook().stream()
+    public List<RecordDto> findAllByUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found id: " + userId));
+        return snippetRepository.findByUserWithBook(user).stream()
                 .map(RecordDto::from)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public RecordDto findById(Long id) {
+    public RecordDto findById(Long id, Long userId) {
         Snippet record = snippetRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Record not found: " + id));
+        if (!record.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Unauthorized");
+        }
         return RecordDto.from(record);
     }
 
@@ -59,28 +64,38 @@ public class RecordService {
     }
 
     @Transactional
-    public RecordDto update(Long id, String type, String text, String tag, Integer relatedPage) {
+    public RecordDto update(Long id, Long userId, String type, String text, String tag, Integer relatedPage) {
         Snippet record = snippetRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Record not found: " + id));
+        if (!record.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Unauthorized");
+        }
         record.update(type, text, tag, relatedPage);
         return RecordDto.from(record);
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id, Long userId) {
+        Snippet record = snippetRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Record not found: " + id));
+        if (!record.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Unauthorized");
+        }
         snippetRepository.deleteById(id);
     }
 
     @Transactional(readOnly = true)
-    public List<RecordDto> getRecordsByBook(Long bookId, String type) {
+    public List<RecordDto> getRecordsByBook(Long bookId, Long userId, String type) {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new IllegalArgumentException("Book not found id: " + bookId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found id: " + userId));
 
         List<Snippet> records;
         if (type != null && !type.isEmpty()) {
-            records = snippetRepository.findByBookAndTypeOrderByCreateDateDesc(book, type);
+            records = snippetRepository.findByBookAndUserAndTypeOrderByCreateDateDesc(book, user, type);
         } else {
-            records = snippetRepository.findByBookOrderByCreateDateDesc(book);
+            records = snippetRepository.findByBookAndUserOrderByCreateDateDesc(book, user);
         }
 
         return records.stream()

@@ -40,16 +40,12 @@ public class UserBookService {
     private final BookSearchService bookSearchService;
 
     @Transactional(readOnly = true)
-    public List<UserBookDto> findAll() {
-        return userBookRepository.findAllWithBook().stream()
-                .map(UserBookDto::from)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public UserBookDto findById(Long id) {
+    public UserBookDto findById(Long id, Long userId) {
         UserBook userBook = userBookRepository.findByIdWithBook(id)
                 .orElseThrow(() -> new IllegalArgumentException("UserBook not found: " + id));
+        if (!userBook.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Unauthorized");
+        }
         return UserBookDto.from(userBook);
     }
 
@@ -218,7 +214,12 @@ public class UserBookService {
         @CacheEvict(value = "readingInsights", allEntries = true)
     })
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id, Long userId) {
+        UserBook userBook = userBookRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("UserBook not found: " + id));
+        if (!userBook.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Unauthorized");
+        }
         userBookRepository.deleteById(id);
     }
 

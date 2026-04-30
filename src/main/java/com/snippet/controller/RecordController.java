@@ -20,13 +20,18 @@ public class RecordController {
     private final RecordService recordService;
 
     @GetMapping
-    public ResponseEntity<List<RecordDto>> getAll() {
-        return ResponseEntity.ok(recordService.findAll());
+    public ResponseEntity<List<RecordDto>> getAll(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(recordService.findAllByUser(userId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RecordDto> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(recordService.findById(id));
+    public ResponseEntity<RecordDto> getById(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id) {
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(recordService.findById(id, userId));
     }
 
     @PostMapping
@@ -39,8 +44,12 @@ public class RecordController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<RecordDto> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        RecordDto updated = recordService.update(id,
+    public ResponseEntity<RecordDto> update(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        Long userId = userDetails.getUser().getId();
+        RecordDto updated = recordService.update(id, userId,
                 (String) body.get("type"),
                 (String) body.get("text"),
                 (String) body.get("tag"),
@@ -49,8 +58,12 @@ public class RecordController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<RecordDto> patch(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        RecordDto updated = recordService.update(id,
+    public ResponseEntity<RecordDto> patch(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        Long userId = userDetails.getUser().getId();
+        RecordDto updated = recordService.update(id, userId,
                 (String) body.get("type"),
                 (String) body.get("text"),
                 (String) body.get("tag"),
@@ -59,16 +72,21 @@ public class RecordController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        recordService.delete(id);
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id) {
+        Long userId = userDetails.getUser().getId();
+        recordService.delete(id, userId);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/bybook")
     public ResponseEntity<List<RecordDto>> getByBook(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam Long bookId,
             @RequestParam(required = false) String type) {
-        return ResponseEntity.ok(recordService.getRecordsByBook(bookId, type));
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(recordService.getRecordsByBook(bookId, userId, type));
     }
 
     @GetMapping("/monthly")
