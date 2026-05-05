@@ -2,10 +2,13 @@ package com.snippet.service;
 
 import com.snippet.dto.SnippetArchiveDto;
 import com.snippet.dto.SnippetCardDto;
+import com.snippet.dto.SnippetCardsResponseDto;
 import com.snippet.entity.Snippet;
 import com.snippet.entity.SnippetArchive;
+import com.snippet.entity.SnippetDailyView;
 import com.snippet.entity.User;
 import com.snippet.repository.SnippetArchiveRepository;
+import com.snippet.repository.SnippetDailyViewRepository;
 import com.snippet.repository.SnippetRepository;
 import com.snippet.repository.UserBookRepository;
 import com.snippet.repository.UserRepository;
@@ -14,6 +17,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -28,25 +33,68 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class SnippetService {
 
+    private static final int DAILY_LIMIT = 5;
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
     private final SnippetRepository snippetRepository;
     private final SnippetArchiveRepository snippetArchiveRepository;
     private final UserBookRepository userBookRepository;
     private final UserRepository userRepository;
+    private final SnippetDailyViewRepository snippetDailyViewRepository;
 
-    public List<SnippetCardDto> getCards(int count, List<Long> excludeIds, Long userId) {
+    @Transactional
+    public SnippetCardsResponseDto getCards(int count, List<Long> excludeIds, Long userId) {
         if (userId != null) {
-            return getPersonalizedCards(count, excludeIds, userId);
+            return getCardsForUser(count, excludeIds, userId);
         }
-        return getRandomCards(count, excludeIds);
+        List<SnippetCardDto> cards = getRandomCards(count, excludeIds);
+        return SnippetCardsResponseDto.builder()
+                .cards(cards)
+                .remainingToday(-1)
+                .build();
+    }
+
+    @Transactional
+    private SnippetCardsResponseDto getCardsForUser(int count, List<Long> excludeIds, Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            List<SnippetCardDto> cards = getRandomCards(count, excludeIds);
+            return SnippetCardsResponseDto.builder().cards(cards).remainingToday(-1).build();
+        }
+
+        LocalDate today = LocalDate.now(KST);
+        SnippetDailyView dailyView = snippetDailyViewRepository.findByUserAndDate(user, today)
+                .orElse(null);
+        int todayCount = dailyView != null ? dailyView.getCount() : 0;
+        int remaining = Math.max(0, DAILY_LIMIT - todayCount);
+
+        if (remaining == 0) {
+            return SnippetCardsResponseDto.builder().cards(List.of()).remainingToday(0).build();
+        }
+
+        int allowedCount = Math.min(count, remaining);
+        List<SnippetCardDto> cards = getPersonalizedCards(allowedCount, excludeIds, user);
+
+        if (!cards.isEmpty()) {
+            if (dailyView == null) {
+                snippetDailyViewRepository.save(
+                        SnippetDailyView.builder().user(user).date(today).count(cards.size()).build());
+            } else {
+                dailyView.addCount(cards.size());
+            }
+        }
+
+        int newRemaining = Math.max(0, remaining - cards.size());
+        return SnippetCardsResponseDto.builder()
+                .cards(cards)
+                .remainingToday(newRemaining)
+                .build();
     }
 
     // ==================== 개인화 추천 ====================
 
-    private List<SnippetCardDto> getPersonalizedCards(int count, List<Long> requestExcludeIds, Long userId) {
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null) {
-            return getRandomCards(count, requestExcludeIds);
-        }
+    private List<SnippetCardDto> getPersonalizedCards(int count, List<Long> requestExcludeIds, User user) {
+        Long userId = user.getId();
 
         // 제외할 ID 수집: 요청 excludeIds + 이미 아카이브한 스니펫 + 서재에 있는 책의 스니펫
         Set<Long> excludeSet = new HashSet<>();

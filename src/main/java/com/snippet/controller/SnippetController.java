@@ -2,7 +2,7 @@ package com.snippet.controller;
 
 import com.snippet.dto.SnippetArchiveDto;
 import com.snippet.dto.SnippetArchiveRequestDto;
-import com.snippet.dto.SnippetCardDto;
+import com.snippet.dto.SnippetCardsResponseDto;
 import com.snippet.security.CustomUserDetails;
 import com.snippet.service.SnippetService;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ public class SnippetController {
     private final SnippetService snippetService;
 
     @GetMapping("/cards")
-    public ResponseEntity<List<SnippetCardDto>> getCards(
+    public ResponseEntity<SnippetCardsResponseDto> getCards(
             @RequestParam(defaultValue = "10") int count,
             @RequestParam(required = false) List<Long> excludeIds,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
