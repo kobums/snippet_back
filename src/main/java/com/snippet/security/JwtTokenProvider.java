@@ -19,19 +19,35 @@ public class JwtTokenProvider {
 
     private final Key key;
     private final long accessTokenValidityTime;
+    private final long refreshTokenValidityTime;
 
     public JwtTokenProvider(
             @Value("${jwt.secret:defaultSecretKeyWithAtLeast256BitsForHmacSha256ForSpringSecurity1234567890}") String secretKey,
-            @Value("${jwt.access-token-validity-in-milliseconds:86400000}") long accessTokenValidityTime) {
+            @Value("${jwt.access-token-validity-in-milliseconds:3600000}") long accessTokenValidityTime,
+            @Value("${jwt.refresh-token-validity-in-milliseconds:2592000000}") long refreshTokenValidityTime) {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         this.key = Keys.hmacShaKeyFor(keyBytes);
         this.accessTokenValidityTime = accessTokenValidityTime;
+        this.refreshTokenValidityTime = refreshTokenValidityTime;
     }
 
     public String createToken(String email) {
         Claims claims = Jwts.claims().setSubject(email);
         long now = (new Date()).getTime();
         Date validity = new Date(now + this.accessTokenValidityTime);
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(new Date(now))
+                .setExpiration(validity)
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String createRefreshToken(String email) {
+        Claims claims = Jwts.claims().setSubject(email);
+        long now = (new Date()).getTime();
+        Date validity = new Date(now + this.refreshTokenValidityTime);
 
         return Jwts.builder()
                 .setClaims(claims)

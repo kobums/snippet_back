@@ -53,10 +53,13 @@ public class AuthService {
         verificationStore.remove(request.getEmail());
 
         String token = jwtTokenProvider.createToken(savedUser.getEmail());
-        return new AuthDto.AuthResponse(savedUser.getId(), savedUser.getEmail(), savedUser.getName(), token);
+        String refreshToken = jwtTokenProvider.createRefreshToken(savedUser.getEmail());
+        savedUser.updateRefreshToken(refreshToken);
+
+        return new AuthDto.AuthResponse(savedUser.getId(), savedUser.getEmail(), savedUser.getName(), token, refreshToken);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthDto.AuthResponse login(AuthDto.LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일입니다."));
@@ -66,7 +69,10 @@ public class AuthService {
         }
 
         String token = jwtTokenProvider.createToken(user.getEmail());
-        return new AuthDto.AuthResponse(user.getId(), user.getEmail(), user.getName(), token);
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
+        user.updateRefreshToken(refreshToken);
+
+        return new AuthDto.AuthResponse(user.getId(), user.getEmail(), user.getName(), token, refreshToken);
     }
 
     @Transactional(readOnly = true)
@@ -74,7 +80,25 @@ public class AuthService {
         String email = jwtTokenProvider.getUserEmailFromToken(token);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
-        return new AuthDto.AuthResponse(user.getId(), user.getEmail(), user.getName(), token);
+        return new AuthDto.AuthResponse(user.getId(), user.getEmail(), user.getName(), token, user.getRefreshToken());
+    }
+
+    @Transactional
+    public AuthDto.RefreshResponse refresh(AuthDto.RefreshRequest request) {
+        String oldRefreshToken = request.getRefreshToken();
+
+        if (!jwtTokenProvider.validateToken(oldRefreshToken)) {
+            throw new IllegalArgumentException("유효하지 않은 리프레시 토큰입니다.");
+        }
+
+        User user = userRepository.findByRefreshToken(oldRefreshToken)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 리프레시 토큰입니다."));
+
+        String newAccessToken = jwtTokenProvider.createToken(user.getEmail());
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
+        user.updateRefreshToken(newRefreshToken);
+
+        return new AuthDto.RefreshResponse(newAccessToken, newRefreshToken);
     }
 
     @Transactional

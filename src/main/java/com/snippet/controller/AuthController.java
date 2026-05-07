@@ -44,6 +44,12 @@ public class AuthController {
         return ResponseEntity.ok(authService.getMe(token));
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthDto.RefreshResponse> refresh(@RequestBody AuthDto.RefreshRequest request) {
+        AuthDto.RefreshResponse response = authService.refresh(request);
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/account")
     public ResponseEntity<Void> deleteAccount(@RequestHeader("Authorization") String authHeader) {
         String token = authHeader.replace("Bearer ", "");

@@ -31,6 +31,9 @@ public class User {
     @Column(name = "u_createdate", nullable = false, updatable = false)
     private LocalDateTime createDate;
 
+    @Column(name = "u_refresh_token", columnDefinition = "TEXT")
+    private String refreshToken;
+
     @PrePersist
     protected void onCreate() {
         this.createDate = LocalDateTime.now();
@@ -47,5 +50,9 @@ public class User {
         if (email != null) this.email = email;
         if (password != null) this.password = password;
         if (name != null) this.name = name;
+    }
+
+    public void updateRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 }

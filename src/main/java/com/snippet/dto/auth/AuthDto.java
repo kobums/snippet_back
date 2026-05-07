@@ -45,6 +45,21 @@ public class AuthDto {
         private String email;
         private String name;
         private String token;
+        private String refreshToken;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RefreshRequest {
+        private String refreshToken;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class RefreshResponse {
+        private String token;
+        private String refreshToken;
     }
 
     @Getter
