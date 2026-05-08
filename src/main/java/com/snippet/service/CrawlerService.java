@@ -20,6 +20,7 @@ public class CrawlerService {
 
     private final BookRepository bookRepository;
     private final SnippetRepository snippetRepository;
+    private final com.snippet.repository.UserRepository userRepository;
     private final org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
@@ -28,6 +29,8 @@ public class CrawlerService {
 
     @Transactional
     public void crawlAladinSentences(int pagesToCrawl, int startPages) {
+        com.snippet.entity.User crawlerUser = userRepository.findById(2L)
+                .orElseThrow(() -> new IllegalStateException("Crawler user (id=2) not found"));
         int totalSaved = 0;
 
         for (int page = startPages; page <= pagesToCrawl; page++) {
@@ -71,6 +74,10 @@ public class CrawlerService {
                     String affiliateUrl = "https://www.aladin.co.kr";
                     String isbn = "978" + System.currentTimeMillis() % 10000000000L;
                     String extractedId = null;
+                    String publisher = "알라딘";
+                    String category = "";
+                    Integer totalPage = null;
+                    java.time.LocalDate publicationDate = java.time.LocalDate.of(2000, 1, 1);
 
                     Element coverA = section.selectFirst(".cover a");
                     if (coverA != null) {
@@ -118,6 +125,22 @@ public class CrawlerService {
                                         isbn = isbn.substring(0, 13);
                                     }
                                 }
+
+                                String pubDateStr = itemNode.path("pubDate").asText("");
+                                if (!pubDateStr.isEmpty()) {
+                                    try {
+                                        publicationDate = java.time.LocalDate.parse(pubDateStr);
+                                    } catch (Exception ignored) {}
+                                }
+
+                                String publisherStr = itemNode.path("publisher").asText("");
+                                if (!publisherStr.isEmpty()) publisher = publisherStr;
+
+                                String categoryStr = itemNode.path("categoryName").asText("");
+                                if (!categoryStr.isEmpty()) category = categoryStr;
+
+                                int pages = itemNode.path("subInfo").path("itemPage").asInt(0);
+                                if (pages > 0) totalPage = pages;
                             }
                         } catch (Exception e) {
                         }
@@ -128,6 +151,10 @@ public class CrawlerService {
                     final String finalAuthor = author;
                     final String finalCoverUrl = coverUrl;
                     final String finalAffiliateUrl = affiliateUrl;
+                    final String finalPublisher = publisher;
+                    final String finalCategory = category;
+                    final Integer finalTotalPage = totalPage;
+                    final java.time.LocalDate finalPublicationDate = publicationDate;
 
                     Book book = bookRepository.findByIsbn(finalIsbn)
                             .orElseGet(() -> bookRepository.save(Book.builder()
@@ -136,13 +163,20 @@ public class CrawlerService {
                                     .author(finalAuthor)
                                     .coverUrl(finalCoverUrl)
                                     .affiliateUrl(finalAffiliateUrl)
+                                    .publisher(finalPublisher)
+                                    .category(finalCategory)
+                                    .totalPage(finalTotalPage)
+                                    .publicationDate(finalPublicationDate)
                                     .build()));
 
                     if (!snippetRepository.existsByBookAndText(book, text)) {
                         Snippet snippet = Snippet.builder()
                                 .book(book)
+                                .user(crawlerUser)
+                                .type("snippet")
                                 .text(text)
                                 .tag("Aladin")
+                                .relatedPage(0)
                                 .build();
 
                         snippetRepository.save(snippet);
