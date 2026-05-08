@@ -6,10 +6,12 @@ import com.snippet.dto.SnippetCardsResponseDto;
 import com.snippet.entity.Snippet;
 import com.snippet.entity.SnippetArchive;
 import com.snippet.entity.SnippetDailyView;
+import com.snippet.entity.SnippetSeen;
 import com.snippet.entity.User;
 import com.snippet.repository.SnippetArchiveRepository;
 import com.snippet.repository.SnippetDailyViewRepository;
 import com.snippet.repository.SnippetRepository;
+import com.snippet.repository.SnippetSeenRepository;
 import com.snippet.repository.UserBookRepository;
 import com.snippet.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,10 +36,12 @@ import java.util.stream.Collectors;
 public class SnippetService {
 
     private static final int DAILY_LIMIT = 5;
+    private static final int SEEN_TTL_DAYS = 30;
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final SnippetRepository snippetRepository;
     private final SnippetArchiveRepository snippetArchiveRepository;
+    private final SnippetSeenRepository snippetSeenRepository;
     private final UserBookRepository userBookRepository;
     private final UserRepository userRepository;
     private final SnippetDailyViewRepository snippetDailyViewRepository;
@@ -85,13 +89,15 @@ public class SnippetService {
 
     private List<SnippetCardDto> getPersonalizedCards(int count, List<Long> requestExcludeIds, User user) {
         Long userId = user.getId();
+        LocalDate cutoffDate = LocalDate.now(KST).minusDays(SEEN_TTL_DAYS);
 
-        // 제외할 ID 수집: 요청 excludeIds + 이미 아카이브한 스니펫 + 서재에 있는 책의 스니펫
+        // 제외할 ID: 요청 excludeIds + 아카이브 + 서재 책 스니펫 + 30일 내 본 스니펫
         Set<Long> excludeSet = new HashSet<>();
         if (requestExcludeIds != null) {
             excludeSet.addAll(requestExcludeIds);
         }
         excludeSet.addAll(snippetArchiveRepository.findSnippetIdsByUser(user));
+        excludeSet.addAll(snippetSeenRepository.findRecentlySeenSnippetIds(user, cutoffDate));
 
         List<Long> libraryBookIds = userBookRepository.findBookIdsByUserId(userId);
         if (!libraryBookIds.isEmpty()) {
@@ -186,14 +192,18 @@ public class SnippetService {
                 .snippet(snippet)
                 .build()).getId();
         incrementDailyView(user);
+        recordSeen(user, snippet);
         return archiveId;
     }
 
     @Transactional
-    public void skipSnippet(Long userId) {
+    public void skipSnippet(Long userId, Long snippetId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+        Snippet snippet = snippetRepository.findById(snippetId)
+                .orElseThrow(() -> new IllegalArgumentException("스니펫을 찾을 수 없습니다"));
         incrementDailyView(user);
+        recordSeen(user, snippet);
     }
 
     private void incrementDailyView(User user) {
@@ -206,6 +216,10 @@ public class SnippetService {
         } else {
             dailyView.addCount(1);
         }
+    }
+
+    private void recordSeen(User user, Snippet snippet) {
+        snippetSeenRepository.upsertSeen(user.getId(), snippet.getId(), LocalDate.now(KST));
     }
 
     @Transactional

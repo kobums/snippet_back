@@ -57,7 +57,7 @@ public class SnippetController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long id) {
         if (userDetails != null) {
-            snippetService.skipSnippet(userDetails.getUser().getId());
+            snippetService.skipSnippet(userDetails.getUser().getId(), id);
         }
         return ResponseEntity.ok().build();
     }
