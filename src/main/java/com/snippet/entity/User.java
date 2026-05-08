@@ -31,7 +31,7 @@ public class User {
     @Column(name = "u_createdate", nullable = false, updatable = false)
     private LocalDateTime createDate;
 
-    @Column(name = "u_refresh_token", columnDefinition = "TEXT")
+    @Column(name = "u_refreshtoken", columnDefinition = "TEXT")
     private String refreshToken;
 
     @PrePersist
