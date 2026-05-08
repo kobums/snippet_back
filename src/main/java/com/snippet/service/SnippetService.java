@@ -75,19 +75,9 @@ public class SnippetService {
         int allowedCount = Math.min(count, remaining);
         List<SnippetCardDto> cards = getPersonalizedCards(allowedCount, excludeIds, user);
 
-        if (!cards.isEmpty()) {
-            if (dailyView == null) {
-                snippetDailyViewRepository.save(
-                        SnippetDailyView.builder().user(user).date(today).count(cards.size()).build());
-            } else {
-                dailyView.addCount(cards.size());
-            }
-        }
-
-        int newRemaining = Math.max(0, remaining - cards.size());
         return SnippetCardsResponseDto.builder()
                 .cards(cards)
-                .remainingToday(newRemaining)
+                .remainingToday(remaining)
                 .build();
     }
 
@@ -191,10 +181,31 @@ public class SnippetService {
             throw new IllegalStateException("이미 아카이브된 스니펫입니다");
         }
 
-        return snippetArchiveRepository.save(SnippetArchive.builder()
+        Long archiveId = snippetArchiveRepository.save(SnippetArchive.builder()
                 .user(user)
                 .snippet(snippet)
                 .build()).getId();
+        incrementDailyView(user);
+        return archiveId;
+    }
+
+    @Transactional
+    public void skipSnippet(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+        incrementDailyView(user);
+    }
+
+    private void incrementDailyView(User user) {
+        LocalDate today = LocalDate.now(KST);
+        SnippetDailyView dailyView = snippetDailyViewRepository.findByUserAndDate(user, today)
+                .orElse(null);
+        if (dailyView == null) {
+            snippetDailyViewRepository.save(
+                    SnippetDailyView.builder().user(user).date(today).count(1).build());
+        } else {
+            dailyView.addCount(1);
+        }
     }
 
     @Transactional

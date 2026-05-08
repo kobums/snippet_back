@@ -51,4 +51,14 @@ public class SnippetController {
         snippetService.removeArchive(userId, snippetId);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/{id}/skip")
+    public ResponseEntity<Void> skipSnippet(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id) {
+        if (userDetails != null) {
+            snippetService.skipSnippet(userDetails.getUser().getId());
+        }
+        return ResponseEntity.ok().build();
+    }
 }
