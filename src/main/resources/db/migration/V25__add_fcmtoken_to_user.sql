@@ -1,0 +1,1 @@
+ALTER TABLE user_tb ADD COLUMN u_fcmtoken VARCHAR(500) NULL COMMENT 'FCM 디바이스 토큰';

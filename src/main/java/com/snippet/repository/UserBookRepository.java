@@ -147,6 +147,15 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
             @Param("monthStart") LocalDateTime monthStart,
             @Param("monthEnd") LocalDateTime monthEnd);
 
+    // ==================== FCM 알림 쿼리 ====================
+
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.user WHERE ub.type = 'borrow' " +
+           "AND ub.returnDate >= :from AND ub.returnDate < :to " +
+           "AND ub.user.fcmToken IS NOT NULL")
+    List<UserBook> findBorrowedBooksWithReturnDateBetween(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
+
     // ==================== 추천 알고리즘용 쿼리 ====================
 
     @Query("SELECT ub.book.id FROM UserBook ub WHERE ub.user.id = :userId")

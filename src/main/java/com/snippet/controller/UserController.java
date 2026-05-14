@@ -1,9 +1,11 @@
 package com.snippet.controller;
 
 import com.snippet.entity.User;
+import com.snippet.security.CustomUserDetails;
 import com.snippet.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -47,6 +49,14 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         userService.delete(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/fcmtoken")
+    public ResponseEntity<Void> updateFcmToken(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody Map<String, String> body) {
+        userService.updateFcmToken(userDetails.getUser().getId(), body.get("fcmToken"));
         return ResponseEntity.ok().build();
     }
 }

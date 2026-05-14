@@ -34,6 +34,9 @@ public class User {
     @Column(name = "u_refreshtoken", columnDefinition = "TEXT")
     private String refreshToken;
 
+    @Column(name = "u_fcmtoken", length = 500)
+    private String fcmToken;
+
     @PrePersist
     protected void onCreate() {
         this.createDate = LocalDateTime.now();
@@ -54,5 +57,9 @@ public class User {
 
     public void updateRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
+    }
+
+    public void updateFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
     }
 }

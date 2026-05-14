@@ -52,4 +52,10 @@ public class UserService {
     public void delete(Long id) {
         userRepository.deleteById(id);
     }
+
+    @Transactional
+    public void updateFcmToken(Long userId, String fcmToken) {
+        User user = findById(userId);
+        user.updateFcmToken(fcmToken);
+    }
 }
