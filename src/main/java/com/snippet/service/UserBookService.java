@@ -160,7 +160,7 @@ public class UserBookService {
     })
     @Transactional
     public UserBookDto update(Long id, Long userId, String type, String status,
-            Integer readPage, String startDateStr, String endDateStr) {
+            Integer readPage, String startDateStr, String endDateStr, Integer rating) {
         UserBook userBook = userBookRepository.findByIdWithBook(id)
                 .orElseThrow(() -> new IllegalArgumentException("UserBook not found: " + id));
 
@@ -203,6 +203,7 @@ public class UserBookService {
         if (endDateStr != null) {
             userBook.updateEndDate(parseDateTime(endDateStr));
         }
+        if (rating != null) userBook.updateRating(rating);
 
         return UserBookDto.from(userBook);
     }

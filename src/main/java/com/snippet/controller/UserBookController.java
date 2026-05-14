@@ -60,7 +60,8 @@ public class UserBookController {
                 (String) body.get("status"),
                 body.get("readPage") != null ? ((Number) body.get("readPage")).intValue() : null,
                 (String) body.get("startDate"),
-                (String) body.get("endDate"));
+                (String) body.get("endDate"),
+                body.get("rating") != null ? ((Number) body.get("rating")).intValue() : null);
         return ResponseEntity.ok(updated);
     }
 
@@ -75,7 +76,8 @@ public class UserBookController {
                 (String) body.get("status"),
                 body.get("readPage") != null ? ((Number) body.get("readPage")).intValue() : null,
                 (String) body.get("startDate"),
-                (String) body.get("endDate"));
+                (String) body.get("endDate"),
+                body.get("rating") != null ? ((Number) body.get("rating")).intValue() : null);
         return ResponseEntity.ok(updated);
     }
 

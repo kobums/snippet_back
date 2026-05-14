@@ -38,6 +38,9 @@ public class UserBook {
     @Column(name = "ub_readpage", nullable = false)
     private Integer readPage;
 
+    @Column(name = "ub_rating")
+    private Integer rating;
+
     @Column(name = "ub_createdate", nullable = false, updatable = false)
     private LocalDateTime createDate;
 
@@ -103,5 +106,9 @@ public class UserBook {
 
     public void updateEndDate(LocalDateTime endDate) {
         this.endDate = endDate;
+    }
+
+    public void updateRating(Integer rating) {
+        this.rating = rating;
     }
 }
