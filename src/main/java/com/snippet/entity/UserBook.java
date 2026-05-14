@@ -41,6 +41,9 @@ public class UserBook {
     @Column(name = "ub_rating")
     private Integer rating;
 
+    @Column(name = "ub_returndate")
+    private LocalDateTime returnDate;
+
     @Column(name = "ub_createdate", nullable = false, updatable = false)
     private LocalDateTime createDate;
 
@@ -110,5 +113,9 @@ public class UserBook {
 
     public void updateRating(Integer rating) {
         this.rating = rating;
+    }
+
+    public void updateReturnDate(LocalDateTime returnDate) {
+        this.returnDate = returnDate;
     }
 }

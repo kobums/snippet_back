@@ -22,6 +22,7 @@ public class UserBookDto {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private Integer rating;
+    private LocalDateTime returnDate;
 
     public static UserBookDto from(UserBook userBook) {
         return UserBookDto.builder()
@@ -38,6 +39,7 @@ public class UserBookDto {
                 .startDate(userBook.getStartDate())
                 .endDate(userBook.getEndDate())
                 .rating(userBook.getRating())
+                .returnDate(userBook.getReturnDate())
                 .build();
     }
 }
