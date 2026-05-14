@@ -1,13 +1,17 @@
 package com.snippet.controller;
 
+import com.snippet.dto.BookRecommendDto;
 import com.snippet.dto.BookSearchDto;
 import com.snippet.dto.PopularBookDto;
 import com.snippet.entity.Book;
+import com.snippet.security.CustomUserDetails;
+import com.snippet.service.BookRecommendService;
 import com.snippet.service.BookSearchService;
 import com.snippet.service.BookService;
 import com.snippet.service.PopularBookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -22,6 +26,7 @@ public class BookController {
     private final BookService bookService;
     private final BookSearchService bookSearchService;
     private final PopularBookService popularBookService;
+    private final BookRecommendService bookRecommendService;
 
     @GetMapping("/popular")
     public ResponseEntity<List<PopularBookDto>> getPopularBooks(
@@ -37,6 +42,14 @@ public class BookController {
             @RequestParam(defaultValue = "20") int pageSize) {
         return ResponseEntity.ok(popularBookService.getPopularBooks(
                 startDt, endDt, kdc, dtlKdc, age, gender, region, dtlRegion, pageNo, pageSize));
+    }
+
+    @GetMapping("/recommend")
+    public ResponseEntity<List<BookRecommendDto>> getRecommendations(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(
+                bookRecommendService.getRecommendations(userDetails.getUser().getId(), limit));
     }
 
     @GetMapping("/search")
