@@ -3,6 +3,7 @@ package com.snippet.service;
 import com.snippet.dto.ReadingSessionAddRequestDto;
 import com.snippet.dto.ReadingSessionDto;
 import com.snippet.dto.ReadingSessionStatsDto;
+import com.snippet.dto.StreakDto;
 import com.snippet.entity.Book;
 import com.snippet.entity.ReadingSession;
 import com.snippet.entity.User;
@@ -77,5 +78,48 @@ public class ReadingSessionService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         return sessionRepository.getStatsByUserAndUserBookId(user, userBookId);
+    }
+
+    @Transactional(readOnly = true)
+    public StreakDto getStreak(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+
+        List<LocalDate> dates = sessionRepository.findDistinctSessionDatesByUser(user);
+        if (dates.isEmpty()) return new StreakDto(0, 0, null);
+
+        LocalDate today = LocalDate.now();
+        LocalDate latest = dates.get(0);
+
+        // currentStreak: count consecutive days from today or yesterday
+        int current = 0;
+        if (!latest.isBefore(today.minusDays(1))) {
+            LocalDate expected = latest;
+            for (LocalDate d : dates) {
+                if (!d.isAfter(expected)) {
+                    if (d.isEqual(expected)) {
+                        current++;
+                        expected = expected.minusDays(1);
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // maxStreak: longest consecutive run
+        int max = 1;
+        int run = 1;
+        for (int i = 1; i < dates.size(); i++) {
+            if (dates.get(i - 1).minusDays(1).isEqual(dates.get(i))) {
+                run++;
+                if (run > max) max = run;
+            } else {
+                run = 1;
+            }
+        }
+
+        String lastReadDate = latest.toString();
+        return new StreakDto(current, Math.max(max, current), lastReadDate);
     }
 }

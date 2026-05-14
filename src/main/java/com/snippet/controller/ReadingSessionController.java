@@ -3,6 +3,7 @@ package com.snippet.controller;
 import com.snippet.dto.ReadingSessionAddRequestDto;
 import com.snippet.dto.ReadingSessionDto;
 import com.snippet.dto.ReadingSessionStatsDto;
+import com.snippet.dto.StreakDto;
 import com.snippet.security.CustomUserDetails;
 import com.snippet.service.ReadingSessionService;
 import lombok.RequiredArgsConstructor;
@@ -48,5 +49,12 @@ public class ReadingSessionController {
             @RequestParam Long userBookId) {
         return ResponseEntity.ok(
                 sessionService.getStats(userDetails.getUser().getId(), userBookId));
+    }
+
+    @GetMapping("/streak")
+    public ResponseEntity<StreakDto> getStreak(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(
+                sessionService.getStreak(userDetails.getUser().getId()));
     }
 }
