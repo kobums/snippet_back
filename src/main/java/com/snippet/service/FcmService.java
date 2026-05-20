@@ -14,7 +14,8 @@ public class FcmService {
     private static final Logger log = LoggerFactory.getLogger(FcmService.class);
 
     public void sendNotification(String fcmToken, String title, String body) {
-        if (fcmToken == null || fcmToken.isBlank()) return;
+        if (fcmToken == null || fcmToken.isBlank())
+            return;
         if (FirebaseApp.getApps().isEmpty()) {
             log.debug("Firebase not initialized — skipping notification");
             return;
@@ -29,7 +30,8 @@ public class FcmService {
                     .build();
             FirebaseMessaging.getInstance().send(message);
         } catch (Exception e) {
-            log.error("FCM send failed for token {}: {}", fcmToken.substring(0, Math.min(10, fcmToken.length())), e.getMessage());
+            log.error("FCM send failed for token {}: {}", fcmToken.substring(0, Math.min(10, fcmToken.length())),
+                    e.getMessage());
         }
     }
 }
