@@ -43,8 +43,6 @@ dependencies {
 	implementation 'com.google.cloud:google-cloud-vision:3.78.0'
 	// Firebase Admin SDK for FCM push notifications
 	implementation 'com.google.firebase:firebase-admin:9.4.3'
-	// Spring scheduling
-	implementation 'org.springframework.boot:spring-boot-starter-scheduling'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 	annotationProcessor 'org.projectlombok:lombok'
