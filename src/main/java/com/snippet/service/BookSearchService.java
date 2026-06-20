@@ -27,7 +27,7 @@ public class BookSearchService {
         }
 
         try {
-            String url = org.springframework.web.util.UriComponentsBuilder
+            java.net.URI uri = org.springframework.web.util.UriComponentsBuilder
                     .fromUriString("https://www.aladin.co.kr/ttb/api/ItemSearch.aspx")
                     .queryParam("ttbkey", aladinApiKey)
                     .queryParam("Query", query)
@@ -38,10 +38,11 @@ public class BookSearchService {
                     .queryParam("output", "js")
                     .queryParam("Version", "20131101")
                     .queryParam("Cover", "Big")
-                    .build(false)
-                    .toUriString();
+                    .encode()
+                    .build()
+                    .toUri();
 
-            com.fasterxml.jackson.databind.JsonNode response = restTemplate.getForObject(url,
+            com.fasterxml.jackson.databind.JsonNode response = restTemplate.getForObject(uri,
                     com.fasterxml.jackson.databind.JsonNode.class);
             List<BookSearchDto> results = new ArrayList<>();
 
@@ -85,7 +86,7 @@ public class BookSearchService {
         }
 
         try {
-            String url = org.springframework.web.util.UriComponentsBuilder
+            java.net.URI uri = org.springframework.web.util.UriComponentsBuilder
                     .fromUriString("https://www.aladin.co.kr/ttb/api/ItemLookUp.aspx")
                     .queryParam("ttbkey", aladinApiKey)
                     .queryParam("itemIdType", "ISBN")
@@ -93,10 +94,11 @@ public class BookSearchService {
                     .queryParam("output", "js")
                     .queryParam("Version", "20131101")
                     .queryParam("Cover", "Big")
-                    .build(false)
-                    .toUriString();
+                    .encode()
+                    .build()
+                    .toUri();
 
-            com.fasterxml.jackson.databind.JsonNode response = restTemplate.getForObject(url,
+            com.fasterxml.jackson.databind.JsonNode response = restTemplate.getForObject(uri,
                     com.fasterxml.jackson.databind.JsonNode.class);
 
             if (response != null && response.has("item") && response.get("item").isArray()
