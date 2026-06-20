@@ -24,7 +24,7 @@ public class PopularBookService {
     @Value("${data4library.auth-key:}")
     private String authKey;
 
-    private static final String BASE_URL = "http://data4library.kr/api/loanItemSrch";
+    private static final String BASE_URL = "https://data4library.kr/api/loanItemSrch";
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     @Cacheable(value = "popularBooks",
