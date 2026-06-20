@@ -22,12 +22,13 @@ public class BookSearchService {
 
     public List<BookSearchDto> searchBooks(String query, int page) {
         if (aladinApiKey == null || aladinApiKey.isEmpty()) {
-            return getMockResults(query);
+            log.warn("Aladin API key is not configured; returning empty search results");
+            return new ArrayList<>();
         }
 
         try {
             String url = org.springframework.web.util.UriComponentsBuilder
-                    .fromUriString("http://www.aladin.co.kr/ttb/api/ItemSearch.aspx")
+                    .fromUriString("https://www.aladin.co.kr/ttb/api/ItemSearch.aspx")
                     .queryParam("ttbkey", aladinApiKey)
                     .queryParam("Query", query)
                     .queryParam("QueryType", "Keyword")
@@ -72,9 +73,10 @@ public class BookSearchService {
                 return results;
             }
         } catch (Exception e) {
+            log.warn("Aladin book search failed for query '{}'", query, e);
         }
 
-        return getMockResults(query);
+        return new ArrayList<>();
     }
 
     public Integer getBookPageFromAladin(String isbn) {
@@ -84,7 +86,7 @@ public class BookSearchService {
 
         try {
             String url = org.springframework.web.util.UriComponentsBuilder
-                    .fromUriString("http://www.aladin.co.kr/ttb/api/ItemLookUp.aspx")
+                    .fromUriString("https://www.aladin.co.kr/ttb/api/ItemLookUp.aspx")
                     .queryParam("ttbkey", aladinApiKey)
                     .queryParam("itemIdType", "ISBN")
                     .queryParam("ItemId", isbn)
@@ -105,6 +107,7 @@ public class BookSearchService {
                 }
             }
         } catch (Exception e) {
+            log.warn("Aladin page lookup failed for ISBN '{}'", isbn, e);
         }
 
         return 0;
@@ -165,19 +168,5 @@ public class BookSearchService {
         }
 
         return String.join(", ", formattedParts);
-    }
-
-    private List<BookSearchDto> getMockResults(String query) {
-        List<BookSearchDto> results = new ArrayList<>();
-        results.add(BookSearchDto.builder()
-                .title("Mock Book: " + query)
-                .author("Mock Author")
-                .publisher("Mock Publisher")
-                .pubDate("2026-01-01")
-                .isbn("9781234567890")
-                .coverUrl("https://image.aladin.co.kr/product/35824/53/cover500/k222036733_1.jpg")
-                .totalPage(300)
-                .build());
-        return results;
     }
 }
