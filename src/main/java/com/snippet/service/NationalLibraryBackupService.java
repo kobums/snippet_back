@@ -64,6 +64,7 @@ public class NationalLibraryBackupService {
                 return results;
             }
         } catch (Exception e) {
+            log.warn("National library search failed for query '{}', falling back to mock results", query, e);
         }
 
         return getMockResults(query);
