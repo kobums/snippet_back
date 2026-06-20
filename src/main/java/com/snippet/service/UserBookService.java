@@ -191,7 +191,8 @@ public class UserBookService {
                 if (!status.equals(previousStatus) || userBook.getEndDate() == null) {
                     userBook.updateEndDate(LocalDateTime.now());
                 }
-                if ("completed".equals(status)) {
+                // 완독으로 새로 전환될 때만 readPage를 totalPage로 설정 (재평가 시 사용자 readPage 보존)
+                if ("completed".equals(status) && !status.equals(previousStatus)) {
                     Integer totalPage = userBook.getBook().getTotalPage();
                     if (totalPage != null) {
                         userBook.updateReadPage(totalPage);
