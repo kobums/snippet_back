@@ -187,7 +187,10 @@ public class UserBookService {
             }
 
             if ("completed".equals(status) || "dropped".equals(status)) {
-                userBook.updateEndDate(LocalDateTime.now());
+                // 완독/중단으로 새로 전환되거나 완료일이 없을 때만 설정 (이미 완독한 책 재평가 시 완독일 보존)
+                if (!status.equals(previousStatus) || userBook.getEndDate() == null) {
+                    userBook.updateEndDate(LocalDateTime.now());
+                }
                 if ("completed".equals(status)) {
                     Integer totalPage = userBook.getBook().getTotalPage();
                     if (totalPage != null) {
