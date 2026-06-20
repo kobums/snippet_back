@@ -25,17 +25,18 @@ public class NationalLibraryBackupService {
         }
 
         try {
-            String url = org.springframework.web.util.UriComponentsBuilder
+            java.net.URI uri = org.springframework.web.util.UriComponentsBuilder
                     .fromUriString("https://www.nl.go.kr/seoji/SearchApi.do")
                     .queryParam("cert_key", nlkApiKey)
                     .queryParam("result_style", "json")
                     .queryParam("page_no", 1)
                     .queryParam("page_size", 10)
                     .queryParam("title", query)
-                    .build(false)
-                    .toUriString();
+                    .encode()
+                    .build()
+                    .toUri();
 
-            com.fasterxml.jackson.databind.JsonNode response = restTemplate.getForObject(url,
+            com.fasterxml.jackson.databind.JsonNode response = restTemplate.getForObject(uri,
                     com.fasterxml.jackson.databind.JsonNode.class);
             List<BookSearchDto> results = new ArrayList<>();
 

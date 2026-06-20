@@ -65,8 +65,8 @@ public class PopularBookService {
             addIfPresent(builder, "region", region);
             addIfPresent(builder, "dtl_region", dtlRegion);
 
-            String url = builder.build(false).toUriString();
-            String raw = restTemplate.getForObject(url, String.class);
+            java.net.URI uri = builder.encode().build().toUri();
+            String raw = restTemplate.getForObject(uri, String.class);
 
             if (raw == null || raw.isBlank()) return List.of();
             ObjectMapper mapper = new ObjectMapper();
