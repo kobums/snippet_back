@@ -27,8 +27,10 @@ public class PopularBookService {
     private static final String BASE_URL = "https://data4library.kr/api/loanItemSrch";
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
+    // 캐시 키에는 결과에 영향을 주는 모든 파라미터가 들어가야 한다.
+    // (pageSize가 빠져 있으면 pageSize=1 응답이 캐시된 뒤 pageSize=20 요청도 1건만 반환)
     @Cacheable(value = "popularBooks",
-            key = "#startDt + '_' + #endDt + '_' + #kdc + '_' + #age + '_' + #gender + '_' + #region + '_' + #pageNo",
+            key = "#startDt + '_' + #endDt + '_' + #kdc + '_' + #dtlKdc + '_' + #age + '_' + #gender + '_' + #region + '_' + #dtlRegion + '_' + #pageNo + '_' + #pageSize",
             unless = "#result.isEmpty()")
     public List<PopularBookDto> getPopularBooks(
             String startDt, String endDt,
