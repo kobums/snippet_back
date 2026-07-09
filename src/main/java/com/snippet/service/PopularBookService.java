@@ -39,8 +39,10 @@ public class PopularBookService {
             String region, String dtlRegion,
             int pageNo, int pageSize) {
 
+        // 인증키 미설정 시 목업 데이터 대신 빈 목록 반환 (가짜 책이 노출되지 않도록)
         if (authKey == null || authKey.isBlank()) {
-            return getMockResults();
+            log.warn("data4library auth-key 미설정 — 인기 도서 빈 목록 반환");
+            return List.of();
         }
 
         // 날짜 기본값: 최근 30일
@@ -114,23 +116,4 @@ public class PopularBookService {
         return results;
     }
 
-    private List<PopularBookDto> getMockResults() {
-        List<PopularBookDto> mocks = new ArrayList<>();
-        String[] titles = {"채식주의자", "82년생 김지영", "아몬드", "파친코", "불편한 편의점"};
-        String[] authors = {"지은이: 한강", "지은이: 조남주", "지은이: 손원평", "지은이: 이민진", "지은이: 김호연"};
-        for (int i = 0; i < titles.length; i++) {
-            mocks.add(PopularBookDto.builder()
-                    .rank(i + 1)
-                    .title(titles[i])
-                    .author(authors[i])
-                    .publisher("창비")
-                    .isbn13("978895640" + String.format("%04d", i))
-                    .kdc("813.62")
-                    .kdcName("문학 > 한국문학 > 소설")
-                    .loanCount(5000 - i * 300)
-                    .coverUrl("")
-                    .build());
-        }
-        return mocks;
-    }
 }
