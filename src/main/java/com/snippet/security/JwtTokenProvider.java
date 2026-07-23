@@ -21,7 +21,7 @@ public class JwtTokenProvider {
     private final long accessTokenValidityTime;
 
     public JwtTokenProvider(
-            @Value("${jwt.secret:defaultSecretKeyWithAtLeast256BitsForHmacSha256ForSpringSecurity1234567890}") String secretKey,
+            @Value("${jwt.secret}") String secretKey,
             @Value("${jwt.access-token-validity-in-milliseconds:3600000}") long accessTokenValidityTime) {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         this.key = Keys.hmacShaKeyFor(keyBytes);

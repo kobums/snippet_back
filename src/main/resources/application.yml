@@ -61,6 +61,10 @@ affiliate:
   yes24:
     partner-id: ${YES24_PARTNER_ID:}
 
+# 로컬 개발 기본값만 두고, 프로덕션은 반드시 .env의 JWT_SECRET으로 덮어쓴다 (Base64 인코딩 필수)
+jwt:
+  secret: ${JWT_SECRET:defaultSecretKeyWithAtLeast256BitsForHmacSha256ForSpringSecurity1234567890}
+
 server:
   port: 8008
 

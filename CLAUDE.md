@@ -79,6 +79,7 @@ V1~V9까지 적용. `src/main/resources/db/migration/` 참조.
 
 ## 환경변수
 - `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` - DB 접속
+- `JWT_SECRET` - JWT 서명 시크릿 (Base64, 프로덕션 필수 — 미설정 시 로컬 개발용 기본값 사용)
 - `ALADIN_API_KEY` - 알라딘 API
 - `KYOBO_PARTNER_ID`, `YES24_PARTNER_ID` - 제휴 마케팅
 - `CORS_ALLOWED_ORIGINS` - CORS 허용 origin
