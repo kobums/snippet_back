@@ -30,6 +30,7 @@ com.snippet
 | Snippet | `record_tb` | book(FK), user(FK), type(snippet/diary/review), text, tag, relatedPage |
 | User | `user_tb` | email(unique), password, name |
 | UserBook | `userbook_tb` | user(FK), book(FK), type(wish/have/borrow/return), status(none/waiting/reading/completed/dropped), readPage, startDate, endDate |
+| RefreshToken | `refreshtoken_tb` | user(FK), token(unique, 불투명 랜덤 문자열), expireDate — 기기별 1행, refresh 시 회전 없이 만료만 연장(sliding) |
 
 ## API 엔드포인트
 
