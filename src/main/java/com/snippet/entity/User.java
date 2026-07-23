@@ -31,9 +31,6 @@ public class User {
     @Column(name = "u_createdate", nullable = false, updatable = false)
     private LocalDateTime createDate;
 
-    @Column(name = "u_refreshtoken", columnDefinition = "TEXT")
-    private String refreshToken;
-
     @Column(name = "u_fcmtoken", length = 500)
     private String fcmToken;
 
@@ -53,10 +50,6 @@ public class User {
         if (email != null) this.email = email;
         if (password != null) this.password = password;
         if (name != null) this.name = name;
-    }
-
-    public void updateRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
     }
 
     public void updateFcmToken(String fcmToken) {
