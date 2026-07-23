@@ -146,6 +146,10 @@ public class UserBookService {
                             .startDate(startDate)
                             .endDate(endDate)
                             .build();
+                    // 대출은 기본 반납 기한 2주 자동 설정
+                    if ("borrow".equals(newUserBook.getType())) {
+                        newUserBook.updateReturnDate(LocalDateTime.now().plusDays(14));
+                    }
                     return userBookRepository.save(newUserBook);
                 });
 
@@ -173,6 +177,10 @@ public class UserBookService {
             // wish로 변경: status를 none으로 강제
             if ("wish".equals(type)) {
                 userBook.updateStatus("none");
+            }
+            // 대출로 변경: 반납일이 없고 요청에도 없으면 기본 반납 기한 2주 설정
+            if ("borrow".equals(type) && userBook.getReturnDate() == null && returnDateStr == null) {
+                userBook.updateReturnDate(LocalDateTime.now().plusDays(14));
             }
         }
         if (status != null) {
