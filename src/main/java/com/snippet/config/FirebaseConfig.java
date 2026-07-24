@@ -17,13 +17,24 @@ public class FirebaseConfig {
 
     private static final Logger log = LoggerFactory.getLogger(FirebaseConfig.class);
 
+    /**
+     * FCM은 앱이 등록된 Firebase 프로젝트의 서비스 계정 키가 필요하다.
+     * Vision OCR용 GOOGLE_APPLICATION_CREDENTIALS와 프로젝트가 다를 수 있으므로
+     * FIREBASE_CREDENTIALS를 우선 사용하고, 미설정 시 GOOGLE_APPLICATION_CREDENTIALS로 폴백한다.
+     */
+    @Value("${FIREBASE_CREDENTIALS:}")
+    private String firebaseCredentialsPath;
+
     @Value("${GOOGLE_APPLICATION_CREDENTIALS:}")
-    private String credentialsPath;
+    private String googleCredentialsPath;
 
     @PostConstruct
     public void initialize() {
+        String credentialsPath = (firebaseCredentialsPath != null && !firebaseCredentialsPath.isBlank())
+                ? firebaseCredentialsPath
+                : googleCredentialsPath;
         if (credentialsPath == null || credentialsPath.isBlank()) {
-            log.warn("GOOGLE_APPLICATION_CREDENTIALS not set — FCM disabled");
+            log.warn("FIREBASE_CREDENTIALS / GOOGLE_APPLICATION_CREDENTIALS not set — FCM disabled");
             return;
         }
         if (!FirebaseApp.getApps().isEmpty()) {
