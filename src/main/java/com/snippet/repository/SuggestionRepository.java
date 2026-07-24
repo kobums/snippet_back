@@ -8,4 +8,8 @@ import java.util.List;
 
 public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
     List<Suggestion> findByUserOrderByCreateDateDesc(User user);
+
+    List<Suggestion> findAllByOrderByCreateDateDesc();
+
+    List<Suggestion> findByStatusOrderByCreateDateDesc(String status);
 }

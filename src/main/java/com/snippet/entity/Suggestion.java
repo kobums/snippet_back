@@ -35,6 +35,12 @@ public class Suggestion {
     @Column(name = "s_status", nullable = false, length = 20)
     private String status;
 
+    @Column(name = "s_answer", columnDefinition = "TEXT")
+    private String answer;
+
+    @Column(name = "s_answerdate")
+    private LocalDateTime answerDate;
+
     @Column(name = "s_createdate", nullable = false, updatable = false)
     private LocalDateTime createDate;
 
@@ -50,5 +56,11 @@ public class Suggestion {
         this.category = category;
         this.title = title;
         this.content = content;
+    }
+
+    public void answer(String answer, String status) {
+        this.answer = answer;
+        this.answerDate = LocalDateTime.now();
+        this.status = status;
     }
 }
