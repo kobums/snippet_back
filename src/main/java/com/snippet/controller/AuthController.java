@@ -53,6 +53,12 @@ public class AuthController {
     @DeleteMapping("/account")
     public ResponseEntity<Void> deleteAccount(@RequestHeader("Authorization") String authHeader) {
         String token = authHeader.replace("Bearer ", "");
+        // /api/auth/** 는 permitAll 이므로 여기서 직접 검증해야 한다.
+        // 검증 없이 파싱하면 만료·위조 토큰이 파싱 예외로 500을 내며, 클라이언트는
+        // "탈퇴 실패"만 보고 재로그인해야 한다는 걸 알 수 없다.
+        if (!jwtTokenProvider.validateToken(token)) {
+            return ResponseEntity.status(401).build();
+        }
         String email = jwtTokenProvider.getUserEmailFromToken(token);
         authService.deleteAccount(email);
         return ResponseEntity.ok().build();
