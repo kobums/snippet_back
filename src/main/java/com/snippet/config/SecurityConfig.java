@@ -62,6 +62,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/snippets/cards").permitAll()
                         .requestMatchers("/api/books/popular").permitAll()
+                        // 강제 업데이트 게이트는 로그인 전에도 동작해야 한다
+                        .requestMatchers("/api/appversion").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, customUserDetailsService),

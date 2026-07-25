@@ -68,14 +68,23 @@ com.snippet
 ### OcrController (`/api/ocr`)
 - `POST /` - Google Cloud Vision API를 통한 OCR 텍스트 추출
 
+### AppVersionController (`/api/appversion`)
+- `GET /?platform=ios|android&version=1.0.28` - 앱 버전 정책 조회 (인증 불필요)
+- 버전 비교는 서버가 전담하고 클라이언트는 `updateRequired`/`updateAvailable`만 사용
+- **fail-open**: platform/version 미전달·형식 오류, min 미설정·형식 오류, storeUrl 미설정이면
+  전부 "차단 안 함"으로 응답 (설정 실수로 전 사용자가 잠기는 사고 방지)
+
 ## 보안 설정
-- 공개 엔드포인트: `/api/auth/**`, `/api/snippets/**`
+- 공개 엔드포인트: `/api/auth/**`, `/api/snippets/**`, `/api/appversion`
 - 나머지 인증 필요 (Bearer JWT)
 - BCrypt 비밀번호 인코딩
 - CORS: `CORS_ALLOWED_ORIGINS` 환경변수
 
 ## Flyway 마이그레이션
-V1~V9까지 적용. `src/main/resources/db/migration/` 참조.
+V1~V30까지 적용. `src/main/resources/db/migration/` 참조.
+
+⚠️ `user_tb`를 참조하는 FK를 새로 추가할 때는 반드시 `ON DELETE CASCADE`(또는 의도적으로
+`SET NULL`)를 명시할 것. 기본값 RESTRICT로 두면 회원 탈퇴가 전부 실패한다 (V30에서 수정).
 
 ## 환경변수
 - `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` - DB 접속
@@ -85,6 +94,11 @@ V1~V9까지 적용. `src/main/resources/db/migration/` 참조.
 - `CORS_ALLOWED_ORIGINS` - CORS 허용 origin
 - `GOOGLE_CLOUD_PROJECT_ID` - Google Cloud 프로젝트 ID (OCR)
 - `GOOGLE_APPLICATION_CREDENTIALS` - Google Cloud 인증 JSON 파일 경로 (OCR)
+- `APP_MIN_VERSION_IOS`, `APP_MIN_VERSION_ANDROID` - 이 버전 미만이면 앱 사용 차단 (강제 업데이트).
+  **비워두면 강제 업데이트 비활성** — 올리는 순간 그보다 낮은 버전 사용자는 전부 앱에서 잠기므로 주의
+- `APP_LATEST_VERSION_IOS`, `APP_LATEST_VERSION_ANDROID` - 최신 버전 (권장 업데이트 안내용, 스킵 가능)
+- `APP_STORE_URL_IOS`, `APP_STORE_URL_ANDROID` - 스토어 이동 URL (기본값 있음)
+- `APP_UPDATE_MESSAGE` - 업데이트 안내 문구 (미설정 시 클라이언트 기본 문구)
 
 ## 컨벤션
 - API URL에 하이픈(-) 사용 금지 (camelCase 또는 소문자 연결)

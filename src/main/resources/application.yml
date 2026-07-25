@@ -90,3 +90,17 @@ naver:
 google:
   application:
     credentials: ${GOOGLE_APPLICATION_CREDENTIALS:}
+
+# 앱 강제 업데이트 정책.
+# min을 비워두면(기본값) 강제 업데이트가 발동하지 않는다 — 값이 다 채워졌을 때만 차단한다.
+# min을 올리는 순간 그보다 낮은 버전의 사용자는 전부 앱에서 잠기므로 반드시 확인 후 설정할 것.
+appversion:
+  ios:
+    min: ${APP_MIN_VERSION_IOS:}
+    latest: ${APP_LATEST_VERSION_IOS:}
+    storeurl: ${APP_STORE_URL_IOS:https://apps.apple.com/kr/app/id6759643636}
+  android:
+    min: ${APP_MIN_VERSION_ANDROID:}
+    latest: ${APP_LATEST_VERSION_ANDROID:}
+    storeurl: ${APP_STORE_URL_ANDROID:https://play.google.com/store/apps/details?id=com.gowoobro.snippet}
+  message: ${APP_UPDATE_MESSAGE:}
