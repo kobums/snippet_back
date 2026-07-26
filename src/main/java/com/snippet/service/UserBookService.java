@@ -51,6 +51,11 @@ public class UserBookService {
 
     @Transactional
     public Long create(Long userId, LibraryAddRequestDto request) {
+        // isbn이 없으면 아래 orElseGet이 빈 ISBN 책을 만들어버린다 (두 번째부터는
+        // uk_book_isbn 충돌로 500). find-or-create의 키가 없는 요청은 400으로 거부.
+        if (request.getIsbn() == null || request.getIsbn().isBlank()) {
+            throw new IllegalArgumentException("isbn은 필수입니다");
+        }
         Book book = bookRepository.findByIsbn(request.getIsbn())
                 .orElseGet(() -> {
                     LocalDate pubDate = LocalDate.of(1970, 1, 1);

@@ -50,6 +50,7 @@ public class RecordService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found id: " + userId));
         Book book = bookRepository.findById(requestDto.getBookId())
                 .orElseThrow(() -> new IllegalArgumentException("Book not found id: " + requestDto.getBookId()));
+        validateRelatedPage(requestDto.getRelatedPage(), book);
 
         Snippet record = Snippet.builder()
                 .book(book)
@@ -70,8 +71,28 @@ public class RecordService {
         if (!record.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("Unauthorized");
         }
+        validateRelatedPage(relatedPage, record.getBook());
         record.update(type, text, tag, relatedPage);
         return RecordDto.from(record);
+    }
+
+    /**
+     * 관련 페이지가 책 범위를 벗어나면 400.
+     * 클라이언트별 폼 검증이 제각각이라(등록 모달엔 있고 수정·기록 페이지엔 누락)
+     * 서버를 단일 검증 지점으로 둔다. totalPage 미등록(null/0) 책은 상한 검증 생략.
+     */
+    private static void validateRelatedPage(Integer relatedPage, Book book) {
+        if (relatedPage == null) {
+            return;
+        }
+        if (relatedPage < 0) {
+            throw new IllegalArgumentException("관련 페이지는 0 이상이어야 합니다");
+        }
+        Integer totalPage = book.getTotalPage();
+        if (totalPage != null && totalPage > 0 && relatedPage > totalPage) {
+            throw new IllegalArgumentException(
+                    "관련 페이지(" + relatedPage + "p)가 책 전체 페이지(" + totalPage + "p)를 초과합니다");
+        }
     }
 
     @Transactional
