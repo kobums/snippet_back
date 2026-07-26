@@ -1,0 +1,15 @@
+# 테스트 프로파일 — 외부 인프라(MariaDB) 없이 컨텍스트가 뜨도록 인메모리 H2 사용.
+# Flyway 마이그레이션은 MariaDB 전용 SQL이라 테스트에선 끄고, 스키마는 JPA가 생성한다.
+spring:
+  datasource:
+    url: jdbc:h2:mem:snippet;MODE=MariaDB;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+  flyway:
+    enabled: false

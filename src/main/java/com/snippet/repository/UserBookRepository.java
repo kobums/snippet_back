@@ -126,12 +126,14 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
 
     /**
      * 최장 독서 기록 (JPQL로 변경하여 JOIN FETCH 적용)
-     * DATEDIFF를 네이티브 함수로 사용하되, JPQL에서 function()으로 호출
+     * 날짜 차이는 HQL 표준 timestampdiff 사용 — function('DATEDIFF', ...)는 MariaDB 2인자
+     * 시그니처에 묶여 있어 다른 방언(H2 테스트 등)에서 파싱이 깨진다.
+     * TIMESTAMPDIFF(DAY, start, end) == DATEDIFF(end, start) (DATE 컬럼 기준 동일)
      */
     @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book " +
            "WHERE ub.user.id = :userId AND ub.status = 'completed' " +
            "AND YEAR(ub.endDate) = :year " +
-           "ORDER BY function('DATEDIFF', ub.endDate, ub.startDate) DESC")
+           "ORDER BY timestampdiff(day, ub.startDate, ub.endDate) DESC")
     List<UserBook> findLongestReadingBookWithBook(@Param("userId") Long userId, @Param("year") int year, Pageable pageable);
 
     /**

@@ -48,6 +48,8 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	// 컨텍스트 테스트용 인메모리 DB (test 프로파일에서 MariaDB 대체)
+	testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
