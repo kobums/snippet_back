@@ -34,6 +34,11 @@ public class ReadingSessionService {
         UserBook userBook = userBookRepository.findByIdWithBook(dto.getUserBookId())
                 .orElseThrow(() -> new IllegalArgumentException("UserBook not found: " + dto.getUserBookId()));
 
+        // 남의 서재 항목에 세션을 붙여 readPage를 밀어올리는 것을 차단
+        if (!userBook.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Unauthorized");
+        }
+
         Book book = userBook.getBook();
 
         ReadingSession session = ReadingSession.builder()
