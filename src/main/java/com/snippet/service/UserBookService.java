@@ -192,9 +192,10 @@ public class UserBookService {
             String previousStatus = userBook.getStatus();
             userBook.updateStatus(status);
 
-            // 읽는중으로 변경: 대기중에서 변경되거나 시작일이 없으면 현재 시각으로 설정
+            // 읽는중으로 새로 전환(대기/없음/중단/완독 → 읽는중)되면 시작일을 현재 시각으로 설정.
+            // 프론트가 로컬에서 startDate=now 로 표시하므로 서버도 같은 규칙을 따라야 새로고침 후 값이 안 바뀐다.
             if ("reading".equals(status)) {
-                if ("waiting".equals(previousStatus) || userBook.getStartDate() == null) {
+                if (!"reading".equals(previousStatus) || userBook.getStartDate() == null) {
                     userBook.updateStartDate(LocalDateTime.now());
                 }
             }
