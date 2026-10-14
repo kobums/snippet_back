@@ -58,7 +58,7 @@ public class RecordService {
                 .type(requestDto.getType())
                 .text(requestDto.getText())
                 .tag(requestDto.getTag())
-                .relatedPage(requestDto.getRelatedPage())
+                .relatedPage(defaultRelatedPage(requestDto.getRelatedPage(), book))
                 .build();
 
         return snippetRepository.save(record).getId();
@@ -74,6 +74,19 @@ public class RecordService {
         validateRelatedPage(relatedPage, record.getBook());
         record.update(type, text, tag, relatedPage);
         return RecordDto.from(record);
+    }
+
+    /**
+     * 관련 페이지를 비워서 보내면 책의 마지막 페이지(totalPage)로 채운다.
+     * 사용자가 페이지를 적지 않고 기록만 남기는 경우가 많아, 클라이언트마다 다르게
+     * 막던 것을 서버 기본값으로 통일한다. totalPage 미등록(null/0) 책은 그대로 비워 둔다.
+     */
+    private static Integer defaultRelatedPage(Integer relatedPage, Book book) {
+        if (relatedPage != null) {
+            return relatedPage;
+        }
+        Integer totalPage = book.getTotalPage();
+        return (totalPage != null && totalPage > 0) ? totalPage : null;
     }
 
     /**
