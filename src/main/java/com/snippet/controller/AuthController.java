@@ -3,6 +3,7 @@ package com.snippet.controller;
 import com.snippet.dto.auth.AuthDto;
 import com.snippet.security.JwtTokenProvider;
 import com.snippet.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,8 +31,11 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthDto.AuthResponse> login(@RequestBody AuthDto.LoginRequest request) {
-        AuthDto.AuthResponse response = authService.login(request);
+    public ResponseEntity<AuthDto.AuthResponse> login(@RequestBody AuthDto.LoginRequest request,
+                                                      HttpServletRequest httpRequest) {
+        // X-Forwarded-For는 기본적으로 신뢰하지 않는다(8008 포트가 직접 노출돼 있으면 위조 가능).
+        // nginx 뒤에서만 접근 가능하게 막은 경우 SERVER_FORWARD_HEADERS_STRATEGY=native 로 실제 IP 반영.
+        AuthDto.AuthResponse response = authService.login(request, httpRequest.getRemoteAddr());
         return ResponseEntity.ok(response);
     }
 

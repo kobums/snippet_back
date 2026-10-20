@@ -5,7 +5,9 @@ import com.snippet.entity.RefreshToken;
 import com.snippet.entity.User;
 import com.snippet.repository.RefreshTokenRepository;
 import com.snippet.repository.UserRepository;
+import com.snippet.exception.TooManyAttemptsException;
 import com.snippet.security.JwtTokenProvider;
+import com.snippet.security.LoginAttemptLimiter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final EmailService emailService;
     private final EmailVerificationStore verificationStore;
+    private final LoginAttemptLimiter loginAttemptLimiter;
     private final long refreshTokenValidityTime;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -35,6 +38,7 @@ public class AuthService {
             JwtTokenProvider jwtTokenProvider,
             EmailService emailService,
             EmailVerificationStore verificationStore,
+            LoginAttemptLimiter loginAttemptLimiter,
             @Value("${jwt.refresh-token-validity-in-milliseconds:2592000000}") long refreshTokenValidityTime) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -42,6 +46,7 @@ public class AuthService {
         this.jwtTokenProvider = jwtTokenProvider;
         this.emailService = emailService;
         this.verificationStore = verificationStore;
+        this.loginAttemptLimiter = loginAttemptLimiter;
         this.refreshTokenValidityTime = refreshTokenValidityTime;
     }
 
@@ -83,13 +88,24 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthDto.AuthResponse login(AuthDto.LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일입니다."));
+    public AuthDto.AuthResponse login(AuthDto.LoginRequest request, String clientIp) {
+        String email = request.getEmail();
+        // 무차별 대입 방지: 이메일+IP 조합으로 15분 내 5회 실패 시 15분 잠금
+        if (loginAttemptLimiter.isLocked(email, clientIp)) {
+            throw new TooManyAttemptsException("로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.");
+        }
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            loginAttemptLimiter.recordFailure(email, clientIp);
+            throw new IllegalArgumentException("존재하지 않는 이메일입니다.");
+        }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            loginAttemptLimiter.recordFailure(email, clientIp);
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
+        loginAttemptLimiter.recordSuccess(email, clientIp);
 
         // 만료된 세션 행 정리 (기회적 cleanup)
         refreshTokenRepository.deleteByUserAndExpireDateBefore(user, LocalDateTime.now());
