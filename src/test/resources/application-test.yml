@@ -13,3 +13,7 @@ spring:
 
   flyway:
     enabled: false
+
+# 테스트 전용 서명 키 (운영과 무관한 더미 값)
+jwt:
+  secret: dGVzdC1vbmx5LWp3dC1zZWNyZXQtbm90LWZvci1wcm9kdWN0aW9uLTAxMjM0NTY3ODlhYmNkZWY=

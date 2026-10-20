@@ -4,6 +4,7 @@ import com.snippet.dto.BookRecommendDto;
 import com.snippet.dto.BookSearchDto;
 import com.snippet.dto.PopularBookDto;
 import com.snippet.entity.Book;
+import com.snippet.security.AdminGuard;
 import com.snippet.security.CustomUserDetails;
 import com.snippet.service.BookRecommendService;
 import com.snippet.service.BookSearchService;
@@ -27,6 +28,7 @@ public class BookController {
     private final BookSearchService bookSearchService;
     private final PopularBookService popularBookService;
     private final BookRecommendService bookRecommendService;
+    private final AdminGuard adminGuard;
 
     @GetMapping("/popular")
     public ResponseEntity<List<PopularBookDto>> getPopularBooks(
@@ -70,7 +72,11 @@ public class BookController {
     }
 
     @PostMapping
-    public ResponseEntity<Book> create(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Book> create(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody Map<String, Object> body) {
+        // 공용 도서 카탈로그 생성·수정·삭제는 관리자 전용
+        adminGuard.check(userDetails);
         Book book = Book.builder()
                 .isbn((String) body.get("isbn"))
                 .title((String) body.get("title"))
@@ -86,7 +92,10 @@ public class BookController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Book> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<Book> update(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id, @RequestBody Map<String, Object> body) {
+        adminGuard.check(userDetails);
         Book updated = bookService.update(id,
                 (String) body.get("isbn"),
                 (String) body.get("title"),
@@ -101,7 +110,10 @@ public class BookController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<Book> patch(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<Book> patch(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id, @RequestBody Map<String, Object> body) {
+        adminGuard.check(userDetails);
         Book updated = bookService.update(id,
                 (String) body.get("isbn"),
                 (String) body.get("title"),
@@ -116,7 +128,10 @@ public class BookController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id) {
+        adminGuard.check(userDetails);
         bookService.delete(id);
         return ResponseEntity.ok().build();
     }

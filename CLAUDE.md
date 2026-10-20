@@ -84,6 +84,8 @@ com.snippet
 - 공개 엔드포인트: `/api/auth/**`, `/api/snippets/**`, `/api/appversion`
 - 나머지 인증 필요 (Bearer JWT)
 - BCrypt 비밀번호 인코딩
+- 로그인 시도 제한: 이메일+IP 기준 15분 내 5회 실패 시 15분 잠금(429). 이메일 인증코드는 5회 오답 시 폐기.
+  둘 다 **인메모리**(단일 인스턴스 전제) — 스케일아웃 시 Redis 등으로 이전 필요
 - CORS: `CORS_ALLOWED_ORIGINS` 환경변수
 
 ## Flyway 마이그레이션
@@ -94,7 +96,8 @@ V1~V33까지 적용. `src/main/resources/db/migration/` 참조.
 
 ## 환경변수
 - `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` - DB 접속
-- `JWT_SECRET` - JWT 서명 시크릿 (Base64, 프로덕션 필수 — 미설정 시 로컬 개발용 기본값 사용)
+- `JWT_SECRET` - JWT 서명 시크릿 (Base64, 필수 — 미설정 시 기동 실패. 로컬 기본값은 `application-local.yml`에만 있음)
+- `ADMIN_EMAILS` - 관리자 이메일(콤마 구분). 사용자/도서 CRUD는 관리자 전용, 미설정 시 전부 거부
 - `ALADIN_API_KEY` - 알라딘 API
 - `KYOBO_PARTNER_ID`, `YES24_PARTNER_ID` - 제휴 마케팅
 - `CORS_ALLOWED_ORIGINS` - CORS 허용 origin

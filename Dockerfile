@@ -16,8 +16,7 @@ RUN ./gradlew dependencies --no-daemon || true
 # 소스 코드 복사
 COPY src src
 
-# 환경 변수 파일 복사
-COPY .env .env
+# .env는 이미지에 넣지 않는다 — 런타임에 환경변수/env_file로 주입
 
 # 애플리케이션 빌드 (테스트 제외)
 RUN ./gradlew bootJar -x test --no-daemon
