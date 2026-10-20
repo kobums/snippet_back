@@ -7,6 +7,7 @@ import com.snippet.dto.YearlyStatsDto;
 import com.snippet.dto.CategoryStatsDto;
 import com.snippet.dto.ReadingInsightsDto;
 import com.snippet.entity.Book;
+import com.snippet.entity.ReadingLog;
 import com.snippet.entity.User;
 import com.snippet.entity.UserBook;
 import com.snippet.repository.BookRepository;
@@ -38,6 +39,7 @@ public class UserBookService {
     private final UserBookRepository userBookRepository;
     private final UserRepository userRepository;
     private final BookSearchService bookSearchService;
+    private final ReadingLogService readingLogService;
 
     @Transactional(readOnly = true)
     public UserBookDto findById(Long id, Long userId) {
@@ -177,6 +179,8 @@ public class UserBookService {
             throw new IllegalArgumentException("Unauthorized");
         }
 
+        int previousReadPage = userBook.getReadPage();
+
         if (type != null) {
             userBook.updateType(type);
             // wish로 변경: status를 none으로 강제
@@ -225,6 +229,10 @@ public class UserBookService {
         if (returnDateStr != null) {
             userBook.updateReturnDate(returnDateStr.isBlank() ? null : parseDateTime(returnDateStr));
         }
+
+        // 일별 읽은 페이지 집계용 로그. 요청에 readPage가 없는데 바뀌었다면 완독 전환으로 자동 설정된 것.
+        readingLogService.record(userBook, previousReadPage, userBook.getReadPage(),
+                readPage != null ? ReadingLog.SOURCE_MANUAL : ReadingLog.SOURCE_COMPLETE);
 
         return UserBookDto.from(userBook);
     }

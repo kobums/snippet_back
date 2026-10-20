@@ -30,6 +30,7 @@ com.snippet
 | Snippet | `record_tb` | book(FK), user(FK), type(snippet/diary/review), text, tag, relatedPage |
 | User | `user_tb` | email(unique), password, name |
 | UserBook | `userbook_tb` | user(FK), book(FK), type(wish/have/borrow/return), status(none/waiting/reading/completed/dropped), readPage, startDate, endDate |
+| ReadingLog | `readinglog_tb` | user(FK, CASCADE), userBook/book(FK, **SET NULL** — 서재 삭제 후에도 일별 기록 유지), fromPage, toPage, delta, source(manual/session/complete), logDate |
 | RefreshToken | `refreshtoken_tb` | user(FK), token(unique, 불투명 랜덤 문자열), expireDate — 기기별 1행, refresh 시 회전 없이 만료만 연장(sliding) |
 
 ## API 엔드포인트
@@ -62,6 +63,11 @@ com.snippet
 ### UserController (`/api/users`)
 - CRUD: `GET /` / `GET /{id}` / `POST /` / `PUT /{id}` / `PATCH /{id}` / `DELETE /{id}`
 
+### ReadingLogController (`/api/readinglogs`)
+- `GET /daily` - 일별 읽은 페이지 (year, month). (책, 날짜)별 delta 순합산 후 음수는 0으로 잘라 합산
+- readPage가 바뀌는 모든 경로(직접 수정·타이머 세션·완독 전환)에서 로그가 쌓이며,
+  `/api/readingsessions/streak`도 세션 날짜 + 로그 날짜를 합쳐 계산한다
+
 ### AdminCrawlerController (`/api/admin/crawl`)
 - `POST /aladin` - 알라딘 문장 크롤링
 
@@ -81,7 +87,7 @@ com.snippet
 - CORS: `CORS_ALLOWED_ORIGINS` 환경변수
 
 ## Flyway 마이그레이션
-V1~V30까지 적용. `src/main/resources/db/migration/` 참조.
+V1~V33까지 적용. `src/main/resources/db/migration/` 참조.
 
 ⚠️ `user_tb`를 참조하는 FK를 새로 추가할 때는 반드시 `ON DELETE CASCADE`(또는 의도적으로
 `SET NULL`)를 명시할 것. 기본값 RESTRICT로 두면 회원 탈퇴가 전부 실패한다 (V30에서 수정).

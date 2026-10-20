@@ -5,6 +5,7 @@ import com.snippet.dto.ReadingSessionDto;
 import com.snippet.dto.ReadingSessionStatsDto;
 import com.snippet.dto.StreakDto;
 import com.snippet.entity.Book;
+import com.snippet.entity.ReadingLog;
 import com.snippet.entity.ReadingSession;
 import com.snippet.entity.User;
 import com.snippet.entity.UserBook;
@@ -16,7 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +30,7 @@ public class ReadingSessionService {
     private final ReadingSessionRepository sessionRepository;
     private final UserBookRepository userBookRepository;
     private final UserRepository userRepository;
+    private final ReadingLogService readingLogService;
 
     public Long create(Long userId, ReadingSessionAddRequestDto dto) {
         User user = userRepository.findById(userId)
@@ -52,6 +57,8 @@ public class ReadingSessionService {
                 .build();
 
         if (dto.getEndPage() > userBook.getReadPage()) {
+            readingLogService.record(userBook, userBook.getReadPage(), dto.getEndPage(),
+                    ReadingLog.SOURCE_SESSION, session.getSessionDate());
             userBook.updateReadPage(dto.getEndPage());
         }
 
@@ -90,7 +97,11 @@ public class ReadingSessionService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-        List<LocalDate> dates = sessionRepository.findDistinctSessionDatesByUser(user);
+        // 타이머 세션 날짜 + 페이지를 직접 수정해 읽은 날짜 (최신순, 중복 제거)
+        Set<LocalDate> dateSet = new TreeSet<>(Comparator.reverseOrder());
+        dateSet.addAll(sessionRepository.findDistinctSessionDatesByUser(user));
+        dateSet.addAll(readingLogService.getReadDates(userId));
+        List<LocalDate> dates = List.copyOf(dateSet);
         if (dates.isEmpty()) return new StreakDto(0, 0, null);
 
         LocalDate today = LocalDate.now();
