@@ -18,8 +18,10 @@ public class AuthController {
 
     /** 가입 전 이메일 인증코드 발송 */
     @PostMapping("/emailcode")
-    public ResponseEntity<Void> sendEmailCode(@RequestBody AuthDto.EmailCodeRequest request) {
-        authService.sendEmailCode(request);
+    public ResponseEntity<Void> sendEmailCode(@RequestBody AuthDto.EmailCodeRequest request,
+                                              HttpServletRequest httpRequest) {
+        // 발송 빈도 제한(이메일 60초 쿨다운·시간당 5회, IP 시간당 10회) 초과 시 429
+        authService.sendEmailCode(request, httpRequest.getRemoteAddr());
         return ResponseEntity.ok().build();
     }
 

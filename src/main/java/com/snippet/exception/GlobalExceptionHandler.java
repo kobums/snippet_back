@@ -1,5 +1,6 @@
 package com.snippet.exception;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -30,6 +31,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleTooManyAttemptsException(TooManyAttemptsException e) {
         Map<String, String> error = new HashMap<>();
         error.put("message", e.getMessage());
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(error);
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS);
+        if (e.getRetryAfterSeconds() > 0) {
+            builder.header(HttpHeaders.RETRY_AFTER, String.valueOf(e.getRetryAfterSeconds()));
+        }
+        return builder.body(error);
     }
 }
