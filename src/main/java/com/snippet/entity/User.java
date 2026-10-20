@@ -1,5 +1,6 @@
 package com.snippet.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -22,6 +23,7 @@ public class User {
     @Column(name = "u_email", nullable = false, unique = true, length = 100)
     private String email;
 
+    @JsonIgnore
     @Column(name = "u_password", nullable = false, length = 255)
     private String password;
 
@@ -31,6 +33,7 @@ public class User {
     @Column(name = "u_createdate", nullable = false, updatable = false)
     private LocalDateTime createDate;
 
+    @JsonIgnore
     @Column(name = "u_fcmtoken", length = 500)
     private String fcmToken;
 

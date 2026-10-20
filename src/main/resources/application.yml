@@ -61,17 +61,15 @@ affiliate:
   yes24:
     partner-id: ${YES24_PARTNER_ID:}
 
-# 로컬 개발 기본값만 두고, 프로덕션은 반드시 .env의 JWT_SECRET으로 덮어쓴다 (Base64 인코딩 필수)
+# JWT 서명 키는 반드시 .env의 JWT_SECRET으로 주입한다 (Base64 인코딩 필수, 미설정 시 기동 실패).
+# 로컬 개발용 기본값은 application-local.yml 에만 둔다.
 jwt:
-  secret: ${JWT_SECRET:defaultSecretKeyWithAtLeast256BitsForHmacSha256ForSpringSecurity1234567890}
+  secret: ${JWT_SECRET}
 
 server:
   port: 8008
 
-logging:
-  level:
-    org.hibernate.SQL: debug
-    org.hibernate.type.descriptor.sql.BasicBinder: trace
+# SQL/바인딩 파라미터 로그(토큰·해시 노출 위험)는 application-local.yml 에서만 켠다.
 
 aladin:
   api-key: ${ALADIN_API_KEY:}

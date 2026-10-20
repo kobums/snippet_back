@@ -1,11 +1,21 @@
+# 로컬 개발 프로파일 — 접속 정보/키는 .env(.env.local)에서 주입한다. 실제 값을 이 파일에 커밋하지 말 것.
 spring:
   datasource:
-    url: jdbc:mariadb://140.82.12.99:3306/snippet
-    username: snippet
-    password: snippetdb
+    url: ${DB_URL:jdbc:mariadb://localhost:3306/snippet}
+    username: ${DB_USERNAME:snippet}
+    password: ${DB_PASSWORD:}
 
 aladin:
-  api-key: ttbkobums1459001
+  api-key: ${ALADIN_API_KEY:}
 
 cors:
   allowed-origins: http://localhost:3000
+
+# 로컬 개발 전용 기본값. 프로덕션에서는 이 프로파일을 쓰지 않으며 JWT_SECRET 미설정 시 기동에 실패한다.
+jwt:
+  secret: ${JWT_SECRET:defaultSecretKeyWithAtLeast256BitsForHmacSha256ForSpringSecurity1234567890}
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql.BasicBinder: trace

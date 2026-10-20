@@ -38,6 +38,7 @@ out/
 
 ### Environment ###
 .env*
+!.env.example
 
 ### Google Cloud Service Account (NEVER commit!) ###
 snippet-*.json
