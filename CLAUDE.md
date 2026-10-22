@@ -36,7 +36,7 @@ com.snippet
 ## API 엔드포인트
 
 ### SnippetController (`/api/snippets`)
-- `GET /cards` - 스와이프용 카드 조회 (count, excludeIds)
+- `GET /cards` - 스와이프용 카드 조회 (count, excludeIds). **공개(r_public)된 밑줄만** — 기록 작성·수정 시 `isPublic`으로 고름(기본 비공개, snippet 유형만)
 - `GET /archive` - 아카이브 스니펫 조회 (ids)
 
 ### AuthController (`/api/auth`)
@@ -92,7 +92,7 @@ com.snippet
 - CORS: `CORS_ALLOWED_ORIGINS` 환경변수
 
 ## Flyway 마이그레이션
-V1~V34까지 적용. `src/main/resources/db/migration/` 참조.
+V1~V35까지 적용. `src/main/resources/db/migration/` 참조.
 
 ⚠️ `user_tb`를 참조하는 FK를 새로 추가할 때는 반드시 `ON DELETE CASCADE`(또는 의도적으로
 `SET NULL`)를 명시할 것. 기본값 RESTRICT로 두면 회원 탈퇴가 전부 실패한다 (V30에서 수정).

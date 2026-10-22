@@ -181,6 +181,7 @@ public class CrawlerService {
                                 .book(book)
                                 .user(crawlerUser)
                                 .type("snippet")
+                                .isPublic(true)
                                 .text(text)
                                 .tag("Aladin")
                                 .relatedPage(0)

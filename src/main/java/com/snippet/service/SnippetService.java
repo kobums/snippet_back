@@ -172,6 +172,8 @@ public class SnippetService {
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
         return snippetArchiveRepository.findByUserOrderByCreateDateDesc(user)
                 .stream()
+                // 작성자가 나중에 비공개로 돌린 남의 밑줄은 보관함에서도 숨긴다
+                .filter(sa -> isVisibleTo(sa.getSnippet(), userId))
                 .map(sa -> SnippetArchiveDto.from(sa.getSnippet()))
                 .toList();
     }
@@ -181,6 +183,7 @@ public class SnippetService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
         Snippet snippet = snippetRepository.findById(snippetId)
+                .filter(s -> isVisibleTo(s, userId))
                 .orElseThrow(() -> new IllegalArgumentException("스니펫을 찾을 수 없습니다"));
 
         if (snippetArchiveRepository.existsByUserAndSnippet(user, snippet)) {
@@ -220,6 +223,11 @@ public class SnippetService {
 
     private void recordSeen(User user, Snippet snippet) {
         snippetSeenRepository.upsertSeen(user.getId(), snippet.getId(), LocalDate.now(KST));
+    }
+
+    /** 공개된 밑줄이거나 본인 기록이어야 카드·보관함에 보인다. */
+    private boolean isVisibleTo(Snippet snippet, Long userId) {
+        return snippet.isPublic() || snippet.getUser().getId().equals(userId);
     }
 
     @Transactional

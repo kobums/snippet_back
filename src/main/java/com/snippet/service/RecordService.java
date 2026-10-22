@@ -59,20 +59,21 @@ public class RecordService {
                 .text(requestDto.getText())
                 .tag(requestDto.getTag())
                 .relatedPage(defaultRelatedPage(requestDto.getRelatedPage(), book))
+                .isPublic(Boolean.TRUE.equals(requestDto.getIsPublic()))
                 .build();
 
         return snippetRepository.save(record).getId();
     }
 
     @Transactional
-    public RecordDto update(Long id, Long userId, String type, String text, String tag, Integer relatedPage) {
+    public RecordDto update(Long id, Long userId, String type, String text, String tag, Integer relatedPage, Boolean isPublic) {
         Snippet record = snippetRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Record not found: " + id));
         if (!record.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("Unauthorized");
         }
         validateRelatedPage(relatedPage, record.getBook());
-        record.update(type, text, tag, relatedPage);
+        record.update(type, text, tag, relatedPage, isPublic);
         return RecordDto.from(record);
     }
 

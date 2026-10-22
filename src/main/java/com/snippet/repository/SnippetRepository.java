@@ -19,16 +19,17 @@ public interface SnippetRepository extends JpaRepository<Snippet, Long> {
     List<Snippet> findAllWithBook();
 
     // 개선된 랜덤 조회 - OFFSET 방식 (ORDER BY RAND() 대체)
-    @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.type = 'snippet' ORDER BY s.id")
+    // 스와이프 카드 쿼리는 전부 공개된 밑줄(r_public)만 — 작성자가 공개를 고르지 않은 기록은 노출하지 않는다
+    @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.type = 'snippet' AND s.isPublic = true ORDER BY s.id")
     List<Snippet> findSnippetsWithOffset(Pageable pageable);
 
-    @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.type = 'snippet' AND s.id NOT IN :excludeIds ORDER BY s.id")
+    @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.type = 'snippet' AND s.isPublic = true AND s.id NOT IN :excludeIds ORDER BY s.id")
     List<Snippet> findSnippetsWithOffsetExcluding(@Param("excludeIds") List<Long> excludeIds, Pageable pageable);
 
-    @Query("SELECT COUNT(s) FROM Snippet s WHERE s.type = 'snippet'")
+    @Query("SELECT COUNT(s) FROM Snippet s WHERE s.type = 'snippet' AND s.isPublic = true")
     long countSnippetCards();
 
-    @Query("SELECT COUNT(s) FROM Snippet s WHERE s.type = 'snippet' AND s.id NOT IN :excludeIds")
+    @Query("SELECT COUNT(s) FROM Snippet s WHERE s.type = 'snippet' AND s.isPublic = true AND s.id NOT IN :excludeIds")
     long countSnippetCardsExcluding(@Param("excludeIds") List<Long> excludeIds);
 
     @Query("SELECT DISTINCT s FROM Snippet s JOIN FETCH s.book WHERE s.id IN :ids")
@@ -65,13 +66,13 @@ public interface SnippetRepository extends JpaRepository<Snippet, Long> {
 
     // ==================== 추천 알고리즘용 쿼리 ====================
 
-    @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.type = 'snippet' AND s.book.category = :category AND s.id NOT IN :excludeIds ORDER BY s.id")
+    @Query("SELECT s FROM Snippet s JOIN FETCH s.book WHERE s.type = 'snippet' AND s.isPublic = true AND s.book.category = :category AND s.id NOT IN :excludeIds ORDER BY s.id")
     List<Snippet> findSnippetsByCategoryExcluding(
             @Param("category") String category,
             @Param("excludeIds") List<Long> excludeIds,
             Pageable pageable);
 
-    @Query("SELECT COUNT(s) FROM Snippet s WHERE s.type = 'snippet' AND s.book.category = :category AND s.id NOT IN :excludeIds")
+    @Query("SELECT COUNT(s) FROM Snippet s WHERE s.type = 'snippet' AND s.isPublic = true AND s.book.category = :category AND s.id NOT IN :excludeIds")
     long countSnippetsByCategoryExcluding(
             @Param("category") String category,
             @Param("excludeIds") List<Long> excludeIds);

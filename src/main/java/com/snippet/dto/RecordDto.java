@@ -19,6 +19,7 @@ public class RecordDto {
     private String tag;
     private Integer relatedPage;
     private LocalDateTime createDate;
+    private Boolean isPublic;
 
     public static RecordDto from(Snippet snippet) {
         return RecordDto.builder()
@@ -32,6 +33,7 @@ public class RecordDto {
                 .tag(snippet.getTag())
                 .relatedPage(snippet.getRelatedPage())
                 .createDate(snippet.getCreateDate())
+                .isPublic(snippet.isPublic())
                 .build();
     }
 }

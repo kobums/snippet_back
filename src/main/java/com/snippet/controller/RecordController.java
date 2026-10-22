@@ -53,7 +53,8 @@ public class RecordController {
                 (String) body.get("type"),
                 (String) body.get("text"),
                 (String) body.get("tag"),
-                body.get("relatedPage") != null ? ((Number) body.get("relatedPage")).intValue() : null);
+                body.get("relatedPage") != null ? ((Number) body.get("relatedPage")).intValue() : null,
+                body.get("isPublic") instanceof Boolean isPublic ? isPublic : null);
         return ResponseEntity.ok(updated);
     }
 
@@ -67,7 +68,8 @@ public class RecordController {
                 (String) body.get("type"),
                 (String) body.get("text"),
                 (String) body.get("tag"),
-                body.get("relatedPage") != null ? ((Number) body.get("relatedPage")).intValue() : null);
+                body.get("relatedPage") != null ? ((Number) body.get("relatedPage")).intValue() : null,
+                body.get("isPublic") instanceof Boolean isPublic ? isPublic : null);
         return ResponseEntity.ok(updated);
     }
 
