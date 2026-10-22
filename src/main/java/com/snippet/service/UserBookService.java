@@ -13,6 +13,7 @@ import com.snippet.entity.UserBook;
 import com.snippet.repository.BookRepository;
 import com.snippet.repository.UserBookRepository;
 import com.snippet.repository.UserRepository;
+import com.snippet.util.ClientDateTimeParser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -112,24 +113,16 @@ public class UserBookService {
                     LocalDateTime endDate = LocalDateTime.now();
                     if (request.getStartDate() != null && !request.getStartDate().isEmpty()) {
                         try {
-                            if (request.getStartDate().contains("T") || request.getStartDate().contains(":")) {
-                                startDate = LocalDateTime.parse(request.getStartDate());
-                            } else {
-                                startDate = LocalDate.parse(request.getStartDate()).atStartOfDay();
-                            }
+                            startDate = ClientDateTimeParser.parse(request.getStartDate());
                         } catch (DateTimeParseException e) {
-                            // ignore
+                            // ignore — 형식이 틀리면 현재 시각
                         }
                     }
                     if (request.getEndDate() != null && !request.getEndDate().isEmpty()) {
                         try {
-                            if (request.getEndDate().contains("T") || request.getEndDate().contains(":")) {
-                                endDate = LocalDateTime.parse(request.getEndDate());
-                            } else {
-                                endDate = LocalDate.parse(request.getEndDate()).atStartOfDay();
-                            }
+                            endDate = ClientDateTimeParser.parse(request.getEndDate());
                         } catch (DateTimeParseException e) {
-                            // ignore
+                            // ignore — 형식이 틀리면 현재 시각
                         }
                     }
 
@@ -313,11 +306,7 @@ public class UserBookService {
 
     private LocalDateTime parseDateTime(String dateStr) {
         try {
-            if (dateStr.contains("T") || dateStr.contains(":")) {
-                return LocalDateTime.parse(dateStr);
-            } else {
-                return LocalDate.parse(dateStr).atStartOfDay();
-            }
+            return ClientDateTimeParser.parse(dateStr);
         } catch (DateTimeParseException e) {
             throw new IllegalArgumentException("Invalid date format: " + dateStr);
         }
