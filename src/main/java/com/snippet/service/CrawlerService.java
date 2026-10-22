@@ -27,10 +27,17 @@ public class CrawlerService {
     @org.springframework.beans.factory.annotation.Value("${ALADIN_TTB_KEY}")
     private String ttbKey;
 
+    /**
+     * 크롤링한 문장의 작성자 계정(로그인 불가 시스템 계정, V34 마이그레이션이 생성).
+     * 예전엔 id=2(운영자 개인 계정)로 고정돼 크롤링 문장이 개인 독서 기록에 섞였다.
+     */
+    @org.springframework.beans.factory.annotation.Value("${crawler.user-email}")
+    private String crawlerUserEmail;
+
     @Transactional
     public void crawlAladinSentences(int pagesToCrawl, int startPages) {
-        com.snippet.entity.User crawlerUser = userRepository.findById(2L)
-                .orElseThrow(() -> new IllegalStateException("Crawler user (id=2) not found"));
+        com.snippet.entity.User crawlerUser = userRepository.findByEmail(crawlerUserEmail)
+                .orElseThrow(() -> new IllegalStateException("크롤러 계정이 없습니다: " + crawlerUserEmail));
         int totalSaved = 0;
 
         for (int page = startPages; page <= pagesToCrawl; page++) {

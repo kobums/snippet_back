@@ -92,7 +92,7 @@ com.snippet
 - CORS: `CORS_ALLOWED_ORIGINS` 환경변수
 
 ## Flyway 마이그레이션
-V1~V33까지 적용. `src/main/resources/db/migration/` 참조.
+V1~V34까지 적용. `src/main/resources/db/migration/` 참조.
 
 ⚠️ `user_tb`를 참조하는 FK를 새로 추가할 때는 반드시 `ON DELETE CASCADE`(또는 의도적으로
 `SET NULL`)를 명시할 것. 기본값 RESTRICT로 두면 회원 탈퇴가 전부 실패한다 (V30에서 수정).
@@ -101,6 +101,7 @@ V1~V33까지 적용. `src/main/resources/db/migration/` 참조.
 - `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` - DB 접속
 - `JWT_SECRET` - JWT 서명 시크릿 (Base64, 필수 — 미설정 시 기동 실패. 로컬 기본값은 `application-local.yml`에만 있음)
 - `ADMIN_EMAILS` - 관리자 이메일(콤마 구분). 사용자/도서 CRUD는 관리자 전용, 미설정 시 전부 거부
+- `CRAWLER_USER_EMAIL` - 크롤링 문장 작성자 시스템 계정 (기본 crawler@gowoobro.com, V34가 생성·로그인 불가)
 - `ALADIN_API_KEY` - 알라딘 API
 - `KYOBO_PARTNER_ID`, `YES24_PARTNER_ID` - 제휴 마케팅
 - `CORS_ALLOWED_ORIGINS` - CORS 허용 origin

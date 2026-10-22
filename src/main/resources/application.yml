@@ -74,6 +74,9 @@ server:
 aladin:
   api-key: ${ALADIN_API_KEY:}
 
+# 크롤링 문장 작성자 시스템 계정 (V34 마이그레이션이 생성, 로그인 불가)
+crawler:
+  user-email: ${CRAWLER_USER_EMAIL:crawler@gowoobro.com}
 data4library:
   auth-key: ${DATA4LIBRARY_AUTH_KEY:}
 
