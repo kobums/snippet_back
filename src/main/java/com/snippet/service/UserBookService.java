@@ -61,7 +61,7 @@ public class UserBookService {
         }
         Book book = bookRepository.findByIsbn(request.getIsbn())
                 .orElseGet(() -> {
-                    LocalDate pubDate = LocalDate.of(1970, 1, 1);
+                    LocalDate pubDate = null;
                     if (request.getPubDate() != null && !request.getPubDate().isEmpty()) {
                         try {
                             pubDate = LocalDate.parse(request.getPubDate(),
@@ -70,7 +70,7 @@ public class UserBookService {
                             try {
                                 pubDate = LocalDate.parse(request.getPubDate());
                             } catch (DateTimeParseException e2) {
-                                // 파싱 실패 시 기본값 유지
+                                // 연도만 온 경우("2005") 등 — 아래 ISBN 조회로 보완
                             }
                         }
                     }
@@ -90,8 +90,21 @@ public class UserBookService {
                     }
 
                     int pages = (request.getTotalPage() != null) ? request.getTotalPage() : 0;
-                    if (pages == 0 && request.getIsbn() != null && !request.getIsbn().isEmpty()) {
-                        pages = bookSearchService.getBookPageFromAladin(request.getIsbn());
+                    // 도서 검색(국립중앙도서관 소장자료)은 쪽수를 주지 않고 출판일도 연도뿐인 경우가 많다
+                    if (pages == 0 || pubDate == null) {
+                        BookSearchService.IsbnLookup lookup =
+                                bookSearchService.lookupByIsbn(request.getIsbn()).orElse(null);
+                        if (lookup != null) {
+                            if (pages == 0 && lookup.totalPage() != null) {
+                                pages = lookup.totalPage();
+                            }
+                            if (pubDate == null) {
+                                pubDate = lookup.publicationDate();
+                            }
+                        }
+                    }
+                    if (pubDate == null) {
+                        pubDate = LocalDate.of(1970, 1, 1);
                     }
 
                     Book newBook = Book.builder()

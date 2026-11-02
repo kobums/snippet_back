@@ -37,4 +37,12 @@ public class GlobalExceptionHandler {
         }
         return builder.body(error);
     }
+
+    /** ResponseStatusException은 /error 디스패치에서 인증이 빠져 401로 바뀔 수 있어 여기서 직접 응답한다. */
+    @ExceptionHandler(BookSearchUnavailableException.class)
+    public ResponseEntity<Map<String, String>> handleBookSearchUnavailableException(BookSearchUnavailableException e) {
+        Map<String, String> error = new HashMap<>();
+        error.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error);
+    }
 }

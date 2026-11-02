@@ -5,8 +5,10 @@ spring:
     username: ${DB_USERNAME:snippet}
     password: ${DB_PASSWORD:}
 
-aladin:
-  api-key: ${ALADIN_API_KEY:}
+# 도서 검색(소장자료 검색)·ISBN 서지정보 — 국립중앙도서관 OpenAPI, 두 API가 같은 인증키를 쓴다.
+# 알라딘 OpenAPI는 2026-10-30 서비스 종료.
+national-library:
+  api-key: ${NATIONAL_LIBRARY_KEY:}
 
 cors:
   allowed-origins: http://localhost:3000

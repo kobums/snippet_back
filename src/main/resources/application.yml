@@ -71,8 +71,10 @@ server:
 
 # SQL/바인딩 파라미터 로그(토큰·해시 노출 위험)는 application-local.yml 에서만 켠다.
 
-aladin:
-  api-key: ${ALADIN_API_KEY:}
+# 도서 검색(소장자료 검색)·ISBN 서지정보 — 국립중앙도서관 OpenAPI, 두 API가 같은 인증키를 쓴다.
+# 알라딘 OpenAPI는 2026-10-30 서비스 종료.
+national-library:
+  api-key: ${NATIONAL_LIBRARY_KEY:}
 
 # 크롤링 문장 작성자 시스템 계정 (V34 마이그레이션이 생성, 로그인 불가)
 crawler:
