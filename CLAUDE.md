@@ -44,7 +44,10 @@ com.snippet
 - `POST /login` - 로그인 (JWT 발급)
 
 ### BookController (`/api/books`)
-- `GET /search` - 알라딘 API 도서 검색 (query, page)
+- `GET /search` - 도서 검색 (query, page) — 국립중앙도서관 소장자료 검색 프록시 (`BookSearchService`).
+  국내 도서(ISBN 978-89·979-11)만, 전자책·ISBN 없는 자료는 빼고 같은 ISBN은 합친다.
+  웹·iOS·Android 모두 **10개 미만이면 마지막 페이지**로 판단하므로 걸러낸 뒤에도 페이지당 10개를 채운다.
+  외부 API 장애·키 미설정은 빈 목록이 아니라 **502** (빈 목록으로 숨기면 "검색 결과 없음"과 구분이 안 됨)
 - `GET /` / `GET /{id}` / `POST /` / `PUT /{id}` / `PATCH /{id}` / `DELETE /{id}`
 
 ### UserBookController (`/api/userbooks`)
@@ -69,7 +72,7 @@ com.snippet
   `/api/readingsessions/streak`도 세션 날짜 + 로그 날짜를 합쳐 계산한다
 
 ### AdminCrawlerController (`/api/admin/crawl`)
-- `POST /aladin` - 알라딘 문장 크롤링
+- `POST /aladin` - 알라딘 문장 크롤링 (알라딘 OpenAPI 종료로 쪽수·출판사 등 도서 정보 보강 단계는 동작 안 함)
 
 ### OcrController (`/api/ocr`)
 - `POST /` - Google Cloud Vision API를 통한 OCR 텍스트 추출
@@ -102,7 +105,9 @@ V1~V35까지 적용. `src/main/resources/db/migration/` 참조.
 - `JWT_SECRET` - JWT 서명 시크릿 (Base64, 필수 — 미설정 시 기동 실패. 로컬 기본값은 `application-local.yml`에만 있음)
 - `ADMIN_EMAILS` - 관리자 이메일(콤마 구분). 사용자/도서 CRUD는 관리자 전용, 미설정 시 전부 거부
 - `CRAWLER_USER_EMAIL` - 크롤링 문장 작성자 시스템 계정 (기본 crawler@gowoobro.com, V34가 생성·로그인 불가)
-- `ALADIN_API_KEY` - 알라딘 API
+- `NATIONAL_LIBRARY_KEY` - 국립중앙도서관 OpenAPI 인증키 (도서 검색 + 책 추가 시 ISBN 서지정보로 쪽수·출판일 보완).
+  알라딘 OpenAPI는 2026-10-30 서비스 종료(신규 키 발급도 9/4 종료)되어 `ALADIN_API_KEY`는 더 이상 쓰지 않는다.
+  `ALADIN_TTB_KEY`는 크롤러가 기동 시 필수로 읽으므로 남겨둘 것
 - `KYOBO_PARTNER_ID`, `YES24_PARTNER_ID` - 제휴 마케팅
 - `CORS_ALLOWED_ORIGINS` - CORS 허용 origin
 - `GOOGLE_CLOUD_PROJECT_ID` - Google Cloud 프로젝트 ID (OCR)
