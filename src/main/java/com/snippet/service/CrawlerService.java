@@ -21,11 +21,8 @@ public class CrawlerService {
     private final BookRepository bookRepository;
     private final SnippetRepository snippetRepository;
     private final com.snippet.repository.UserRepository userRepository;
-    private final org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
-    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-
-    @org.springframework.beans.factory.annotation.Value("${ALADIN_TTB_KEY}")
-    private String ttbKey;
+    /** 도서 정보 보강 — 알라딘 OpenAPI(ItemLookUp)가 2026-10-30 종료돼 YES24 제목 검색으로 바꿨다. */
+    private final Yes24BookClient yes24;
 
     /**
      * 크롤링한 문장의 작성자 계정(로그인 불가 시스템 계정, V34 마이그레이션이 생성).
@@ -111,46 +108,22 @@ public class CrawlerService {
                         }
                     }
 
-                    if (extractedId != null) {
-                        String apiUrl = "http://www.aladin.co.kr/ttb/api/ItemLookUp.aspx?ttbkey=" + ttbKey
-                                + "&itemIdType=ItemId&ItemId=" + extractedId + "&output=js&Version=20131101";
-                        try {
-                            String response = restTemplate.getForObject(apiUrl, String.class);
-                            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(response);
-                            com.fasterxml.jackson.databind.JsonNode itemNode = root.path("item").path(0);
-
-                            if (!itemNode.isMissingNode()) {
-                                title = itemNode.path("title").asText(title);
-                                author = itemNode.path("author").asText(author);
-                                coverUrl = itemNode.path("cover").asText(coverUrl);
-                                affiliateUrl = itemNode.path("link").asText(affiliateUrl);
-
-                                String isbn13 = itemNode.path("isbn13").asText("");
-                                if (!isbn13.isEmpty()) {
-                                    isbn = isbn13;
-                                    if (isbn.length() > 13) {
-                                        isbn = isbn.substring(0, 13);
-                                    }
-                                }
-
-                                String pubDateStr = itemNode.path("pubDate").asText("");
-                                if (!pubDateStr.isEmpty()) {
-                                    try {
-                                        publicationDate = java.time.LocalDate.parse(pubDateStr);
-                                    } catch (Exception ignored) {}
-                                }
-
-                                String publisherStr = itemNode.path("publisher").asText("");
-                                if (!publisherStr.isEmpty()) publisher = publisherStr;
-
-                                String categoryStr = itemNode.path("categoryName").asText("");
-                                if (!categoryStr.isEmpty()) category = categoryStr;
-
-                                int pages = itemNode.path("subInfo").path("itemPage").asInt(0);
-                                if (pages > 0) totalPage = pages;
-                            }
-                        } catch (Exception e) {
-                        }
+                    // 문장은 알라딘 웹 페이지에서 가져오고, 도서 정보(실제 ISBN·표지·쪽수·분류)는 YES24에서 찾는다.
+                    // 못 찾으면 페이지에 있던 제목·저자·표지와 알라딘 상품 ID로 만든 임시 ISBN을 그대로 쓴다.
+                    var match = yes24.findByTitle(title, author);
+                    if (match.isPresent()) {
+                        var found = match.get();
+                        title = found.book().getTitle();
+                        author = found.book().getAuthor();
+                        isbn = found.book().getIsbn();
+                        if (!found.book().getCoverUrl().isEmpty()) coverUrl = found.book().getCoverUrl();
+                        if (!found.link().isEmpty()) affiliateUrl = found.link();
+                        if (!found.book().getPublisher().isEmpty()) publisher = found.book().getPublisher();
+                        if (found.category() != null) category = found.category();
+                        if (found.book().getTotalPage() > 0) totalPage = found.book().getTotalPage();
+                        java.time.LocalDate published = com.snippet.util.NlRecordNormalizer
+                                .compactDate(found.book().getPubDate().replace("-", ""));
+                        if (published != null) publicationDate = published;
                     }
 
                     final String finalIsbn = isbn;
