@@ -44,8 +44,10 @@ com.snippet
 - `POST /login` - 로그인 (JWT 발급)
 
 ### BookController (`/api/books`)
-- `GET /search` - 도서 검색 (query, page) — 국립중앙도서관 소장자료 검색 프록시 (`BookSearchService`).
-  국내 도서(ISBN 978-89·979-11)만, 전자책·ISBN 없는 자료는 빼고 같은 ISBN은 합친다.
+- `GET /search` - 도서 검색 (query, page) — **YES24 Open API 우선**(`Yes24BookClient`, 인기도순·표지 XL·쪽수 포함),
+  YES24 키 미설정·장애·한도 초과(429)·첫 페이지 결과 없음이면 국립중앙도서관 소장자료 검색으로 대체 (`BookSearchService`).
+  국내 도서(ISBN 978-89·979-11)만, 전자책·세트·성인 도서·ISBN 없는 자료는 빼고 같은 ISBN은 합친다.
+  책 추가 시 쪽수·출판일이 비면 YES24 상세 → 국립중앙도서관 ISBN 서지정보 순으로 채운다.
   웹·iOS·Android 모두 **10개 미만이면 마지막 페이지**로 판단하므로 걸러낸 뒤에도 페이지당 10개를 채운다.
   외부 API 장애·키 미설정은 빈 목록이 아니라 **502** (빈 목록으로 숨기면 "검색 결과 없음"과 구분이 안 됨)
 - `GET /` / `GET /{id}` / `POST /` / `PUT /{id}` / `PATCH /{id}` / `DELETE /{id}`
@@ -108,6 +110,7 @@ V1~V35까지 적용. `src/main/resources/db/migration/` 참조.
 - `NATIONAL_LIBRARY_KEY` - 국립중앙도서관 OpenAPI 인증키 (도서 검색 + 책 추가 시 ISBN 서지정보로 쪽수·출판일 보완).
   알라딘 OpenAPI는 2026-10-30 서비스 종료(신규 키 발급도 9/4 종료)되어 `ALADIN_API_KEY`는 더 이상 쓰지 않는다.
   `ALADIN_TTB_KEY`는 크롤러가 기동 시 필수로 읽으므로 남겨둘 것
+- `YES24_API_KEY` - YES24 Open API 키 (도서 검색 1순위, developers.yes24.com 발급 — 키당 초당 10회·일 20,000회). 비우면 국립중앙도서관만 사용
 - `KYOBO_PARTNER_ID`, `YES24_PARTNER_ID` - 제휴 마케팅
 - `CORS_ALLOWED_ORIGINS` - CORS 허용 origin
 - `GOOGLE_CLOUD_PROJECT_ID` - Google Cloud 프로젝트 ID (OCR)
