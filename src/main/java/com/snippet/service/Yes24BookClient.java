@@ -118,7 +118,8 @@ public class Yes24BookClient {
         int safePage = Math.max(page, 1);
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(monthly ? MONTHLY_BESTSELLER_URL : BESTSELLER_URL)
                 .queryParam("categoryId", categoryId)
-                .queryParam("detail", "Y")
+                // 쪽수(detail=Y)는 목록에 안 쓴다 — 빼면 서버 기준 0.4초쯤 빠르다
+                .queryParam("detail", "N")
                 .queryParam("page", safePage)
                 .queryParam("pageSize", size);
         if (age != null) {
