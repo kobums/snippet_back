@@ -22,11 +22,16 @@ import java.net.SocketTimeoutException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
@@ -51,7 +56,7 @@ class BookSearchServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new BookSearchService();
+        service = new BookSearchService(new Yes24BookClient());
         ReflectionTestUtils.setField(service, "apiKey", KEY);
         RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(service, "restTemplate");
         server = MockRestServiceServer.bindTo(restTemplate).build();
@@ -224,6 +229,58 @@ class BookSearchServiceTest {
             assertThatThrownBy(() -> service.searchBooks("데미안", 1))
                     .isInstanceOf(BookSearchUnavailableException.class);
             assertThat(output).contains("ResourceAccessException").doesNotContain(KEY);
+        }
+    }
+
+    @Nested
+    @DisplayName("YES24 우선, 국립중앙도서관 폴백")
+    class Yes24First {
+
+        private final Yes24BookClient yes24 = mock(Yes24BookClient.class);
+
+        @BeforeEach
+        void useYes24() {
+            when(yes24.isEnabled()).thenReturn(true);
+            ReflectionTestUtils.setField(service, "yes24", yes24);
+        }
+
+        @Test
+        @DisplayName("YES24 결과가 있으면 국립중앙도서관을 부르지 않는다")
+        void usesYes24() {
+            when(yes24.search("데미안", 1, BookSearchService.PAGE_SIZE))
+                    .thenReturn(List.of(BookSearchDto.builder().title("데미안").isbn("9788937460449").build()));
+
+            assertThat(service.searchBooks("데미안", 1)).extracting(BookSearchDto::getTitle).containsExactly("데미안");
+        }
+
+        @Test
+        @DisplayName("YES24 장애·한도 초과면 국립중앙도서관으로")
+        void fallsBackOnFailure() {
+            when(yes24.search(anyString(), anyInt(), anyInt())).thenThrow(new Yes24BookClient.Yes24Failure("HTTP 429"));
+            expectSearch(1, page(1, List.of(book("데미안", isbn("97911", 1)))));
+
+            assertThat(service.searchBooks("데미안", 1)).extracting(BookSearchDto::getTitle).containsExactly("데미안");
+        }
+
+        @Test
+        @DisplayName("첫 페이지가 비면 국립중앙도서관에서 찾고, 뒤 페이지가 비면 그대로 끝")
+        void fallsBackOnlyForEmptyFirstPage() {
+            when(yes24.search(anyString(), anyInt(), anyInt())).thenReturn(List.of());
+            expectSearch(1, page(1, List.of(book("옛 책", isbn("97911", 2)))));
+
+            assertThat(service.searchBooks("옛 책", 1)).extracting(BookSearchDto::getTitle).containsExactly("옛 책");
+            assertThat(service.searchBooks("옛 책", 2)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("YES24 상세에 쪽수가 없으면 ISBN 서지정보로 채운다")
+        void lookupMergesSources() {
+            when(yes24.lookupByIsbn("9788937461125"))
+                    .thenReturn(Optional.of(new BookSearchService.IsbnLookup(null, LocalDate.of(2005, 1, 1))));
+            expectIsbn("{\"TOTAL_COUNT\":\"1\",\"docs\":[{\"PAGE\":\"244 p.\",\"REAL_PUBLISH_DATE\":\"20041224\"}]}");
+
+            assertThat(service.lookupByIsbn("9788937461125"))
+                    .contains(new BookSearchService.IsbnLookup(244, LocalDate.of(2005, 1, 1)));
         }
     }
 

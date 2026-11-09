@@ -23,11 +23,12 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 도서 검색·ISBN 조회 — 국립중앙도서관 OpenAPI.
+ * 도서 검색·ISBN 조회 — YES24 Open API 우선, 국립중앙도서관 OpenAPI 폴백.
  *
  * <p>알라딘 OpenAPI가 2026-10-30 서비스를 종료해(신규 키 발급도 9/4 종료) 교체했다.
- * 검색은 소장자료 검색 API(관련도순), 쪽수·정확한 출판일은 ISBN 서지정보(seoji) API로 채운다.
- * 두 API는 같은 인증키를 쓴다.
+ * YES24({@link Yes24BookClient})는 제목 검색이 정확하고 표지·쪽수까지 준다. YES24 키가 없거나 장애·한도 초과이거나
+ * 첫 페이지 결과가 없으면 국립중앙도서관 소장자료 검색으로 넘어간다 (옛 책·비매품은 국립중앙도서관에만 있기도 하다).
+ * 쪽수·정확한 출판일은 YES24 상세 → ISBN 서지정보(seoji) 순으로 채운다. 국립중앙도서관 두 API는 같은 인증키를 쓴다.
  */
 @Slf4j
 @Service
@@ -46,20 +47,41 @@ public class BookSearchService {
 
     private final RestTemplate restTemplate = createRestTemplate();
 
+    private final Yes24BookClient yes24;
+
     @Value("${national-library.api-key:}")
     private String apiKey;
+
+    public BookSearchService(Yes24BookClient yes24) {
+        this.yes24 = yes24;
+    }
 
     public List<BookSearchDto> searchBooks(String query, int page) {
         String keyword = query == null ? "" : query.trim();
         if (keyword.isEmpty()) {
             return List.of();
         }
+        int safePage = Math.max(page, 1);
+        if (yes24.isEnabled()) {
+            try {
+                List<BookSearchDto> results = yes24.search(keyword, safePage, PAGE_SIZE);
+                // 첫 페이지가 비면 국립중앙도서관에만 있는 책일 수 있다. 뒤 페이지가 비는 건 마지막 페이지를 넘긴 것
+                if (!results.isEmpty() || safePage > 1) {
+                    return results;
+                }
+            } catch (Yes24BookClient.Yes24Failure e) {
+                log.warn("YES24 검색 실패, 국립중앙도서관으로 대체: query='{}' {}", keyword, e.getMessage());
+            }
+        }
+        return searchNationalLibrary(keyword, safePage);
+    }
+
+    private List<BookSearchDto> searchNationalLibrary(String keyword, int safePage) {
         if (apiKey == null || apiKey.isBlank()) {
             log.error("national-library.api-key(NATIONAL_LIBRARY_KEY) 미설정 — 도서 검색 불가");
             throw new BookSearchUnavailableException();
         }
 
-        int safePage = Math.max(page, 1);
         int wanted = safePage * PAGE_SIZE;
         // 관련도 순서를 유지한 채 같은 ISBN 레코드를 합친다. 포함 여부는 레코드 하나만 보고 정하므로
         // 뒤 페이지를 더 받아도 앞쪽 순서가 바뀌지 않는다 (클라이언트 페이지 사이 중복·누락 방지).
@@ -101,10 +123,29 @@ public class BookSearchService {
     }
 
     /**
-     * ISBN 서지정보로 쪽수·출판일을 찾는다. 소장자료 검색은 쪽수를 주지 않고 출판일도 연도뿐인 경우가 많다.
-     * 실패해도 책 추가는 막지 않는다 (쪽수는 사용자가 나중에 고칠 수 있다).
+     * 쪽수·출판일을 YES24 상세 → ISBN 서지정보 순으로 찾는다. 국립중앙도서관 소장자료 검색은 쪽수를 주지 않고
+     * 출판일도 연도뿐인 경우가 많다. 실패해도 책 추가는 막지 않는다 (쪽수는 사용자가 나중에 고칠 수 있다).
      */
     public Optional<IsbnLookup> lookupByIsbn(String isbn) {
+        Optional<IsbnLookup> fromYes24 = yes24.lookupByIsbn(isbn);
+        if (fromYes24.isPresent() && fromYes24.get().totalPage() != null && fromYes24.get().publicationDate() != null) {
+            return fromYes24;
+        }
+        Optional<IsbnLookup> fromNl = lookupNationalLibrary(isbn);
+        if (fromYes24.isEmpty()) {
+            return fromNl;
+        }
+        if (fromNl.isEmpty()) {
+            return fromYes24;
+        }
+        IsbnLookup a = fromYes24.get();
+        IsbnLookup b = fromNl.get();
+        return Optional.of(new IsbnLookup(
+                a.totalPage() != null ? a.totalPage() : b.totalPage(),
+                a.publicationDate() != null ? a.publicationDate() : b.publicationDate()));
+    }
+
+    private Optional<IsbnLookup> lookupNationalLibrary(String isbn) {
         if (apiKey == null || apiKey.isBlank() || isbn == null || isbn.isBlank()) {
             return Optional.empty();
         }
