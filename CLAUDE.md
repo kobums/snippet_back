@@ -50,6 +50,11 @@ com.snippet
   책 추가 시 쪽수·출판일이 비면 YES24 상세 → 국립중앙도서관 ISBN 서지정보 순으로 채운다.
   웹·iOS·Android 모두 **10개 미만이면 마지막 페이지**로 판단하므로 걸러낸 뒤에도 페이지당 10개를 채운다.
   외부 API 장애·키 미설정은 빈 목록이 아니라 **502** (빈 목록으로 숨기면 "검색 결과 없음"과 구분이 안 됨)
+- `GET /popular` - 인기 도서 (인증 불필요, 6시간 캐시) — **YES24 베스트셀러 우선**(종합, 기간 2주 초과면 월별),
+  YES24 실패·키 미설정이면 도서관정보나루 인기 대출(필터를 걸면 30초 넘게 걸리기도 해서 바꿈 — 2026-11-09).
+  앱은 도서관정보나루 형식(kdc·age·gender·startDt/endDt)을 그대로 보내고 서버가 바꾼다(`PopularBookService`):
+  KDC 대분류 → YES24 분야, 영유아·초등 연령 → 유아·어린이 분야, 청소년 → 10대, 성별은 클라이언트별 코드(male/M/1, female/F/2) 모두 받음.
+  YES24 결과는 `loanCount` 0·`kdc` 빈 값, `kdcName`은 YES24 분야 이름
 - `GET /` / `GET /{id}` / `POST /` / `PUT /{id}` / `PATCH /{id}` / `DELETE /{id}`
 
 ### UserBookController (`/api/userbooks`)

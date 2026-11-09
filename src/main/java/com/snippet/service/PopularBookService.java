@@ -3,6 +3,7 @@ package com.snippet.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.snippet.dto.PopularBookDto;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -14,12 +15,48 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+/**
+ * 인기 도서 — YES24 베스트셀러 우선, 실패하면 도서관정보나루 인기 대출 도서.
+ *
+ * <p>도서관정보나루는 필터(분야·연령)를 걸면 30초 넘게 응답이 없기도 해서 YES24(0.2~0.4초)로 바꿨다.
+ * 앱은 아직 도서관정보나루 형식의 파라미터를 보내므로(클라이언트마다 코드도 다르다) 여기서 YES24 값으로 바꾼다.
+ */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class PopularBookService {
 
+    /** YES24 국내도서 종합. */
+    static final String YES24_ALL = "001";
+    static final String YES24_INFANT = "001001027";
+    static final String YES24_CHILDREN = "001001016";
+
+    /** KDC 대분류 → YES24 국내도서 분야. 총류(0)는 맞는 분야가 없어 전체로 본다. */
+    static final Map<String, String> KDC_TO_YES24 = Map.of(
+            "1", "001001019",  // 철학 → 인문
+            "2", "001001021",  // 종교
+            "3", "001001022",  // 사회과학 → 사회 정치
+            "4", "001001002",  // 자연과학
+            "5", "001001003",  // 기술과학 → IT 모바일
+            "6", "001001007",  // 예술
+            "7", "001001004",  // 언어 → 국어 외국어 사전
+            "8", "001001046",  // 문학 → 소설/시/희곡
+            "9", "001001010"); // 역사
+
+    /** 연령 코드 — iOS(child/young/adult)·Android(0~3)·웹(도서관정보나루 6/8/14/20…) 값을 모두 받는다. */
+    private static final Set<String> INFANT_AGES = Set.of("0", "6");
+    private static final Set<String> CHILD_AGES = Set.of("1", "8", "child");
+    private static final Set<String> TEEN_AGES = Set.of("2", "14", "young");
+    private static final Set<String> DECADE_AGES = Set.of("20", "30", "40", "50", "60");
+
+    /** 이 기간보다 길면 월별 베스트셀러 (YES24는 종합·일별·월별만 있다). */
+    static final int WEEKLY_MAX_DAYS = 14;
+
     private final RestTemplate restTemplate = new RestTemplate();
+    private final Yes24BookClient yes24;
 
     @Value("${data4library.auth-key:}")
     private String authKey;
@@ -39,6 +76,89 @@ public class PopularBookService {
             String region, String dtlRegion,
             int pageNo, int pageSize) {
 
+        if (yes24.isEnabled()) {
+            try {
+                return fromYes24(startDt, endDt, kdc, age, gender, pageNo, pageSize);
+            } catch (Yes24BookClient.Yes24Failure e) {
+                log.warn("YES24 베스트셀러 실패, 도서관정보나루로 대체: {}", e.getMessage());
+            }
+        }
+        return fromLibrary(startDt, endDt, kdc, dtlKdc, age, gender, region, dtlRegion, pageNo, pageSize);
+    }
+
+    private List<PopularBookDto> fromYes24(String startDt, String endDt, String kdc, String age, String gender,
+                                           int pageNo, int pageSize) {
+        return yes24.bestsellers(yes24Category(kdc, age), yes24Age(age), yes24Sex(gender),
+                        isMonthly(startDt, endDt), pageNo, pageSize).stream()
+                .map(b -> PopularBookDto.builder()
+                        .rank(b.rank())
+                        .title(b.item().book().getTitle())
+                        .author(b.item().book().getAuthor())
+                        .publisher(b.item().book().getPublisher())
+                        .isbn13(b.item().book().getIsbn())
+                        .kdc("")
+                        // "국내도서>소설/시/희곡" → "소설/시/희곡"
+                        .kdcName(b.item().category() == null ? ""
+                                : b.item().category().substring(b.item().category().lastIndexOf('>') + 1))
+                        .loanCount(0)
+                        .coverUrl(b.item().book().getCoverUrl())
+                        .build())
+                .toList();
+    }
+
+    /** 영유아·초등 연령은 YES24 연령 필터(10대부터)에 없어 유아·어린이 분야로 대신한다. */
+    static String yes24Category(String kdc, String age) {
+        if (age != null && INFANT_AGES.contains(age)) {
+            return YES24_INFANT;
+        }
+        if (age != null && CHILD_AGES.contains(age)) {
+            return YES24_CHILDREN;
+        }
+        return kdc == null ? YES24_ALL : KDC_TO_YES24.getOrDefault(kdc.trim(), YES24_ALL);
+    }
+
+    static Integer yes24Age(String age) {
+        if (age == null) {
+            return null;
+        }
+        if (TEEN_AGES.contains(age)) {
+            return 10;
+        }
+        return DECADE_AGES.contains(age) ? Integer.valueOf(age) : null;
+    }
+
+    /** 성별 — iOS male/female, Android M/F, 웹 1(남)/2(여). */
+    static String yes24Sex(String gender) {
+        if (gender == null) {
+            return null;
+        }
+        return switch (gender.trim()) {
+            case "male", "M", "1" -> "M";
+            case "female", "F", "2" -> "F";
+            default -> null;
+        };
+    }
+
+    /** 2주 넘는 기간은 월별, 그 외(기간 없음 포함 — Android 기본 "주간")는 종합 순위. */
+    static boolean isMonthly(String startDt, String endDt) {
+        if (startDt == null || startDt.isBlank()) {
+            return false;
+        }
+        try {
+            LocalDate start = LocalDate.parse(startDt, DATE_FMT);
+            LocalDate end = endDt == null || endDt.isBlank() ? LocalDate.now() : LocalDate.parse(endDt, DATE_FMT);
+            return java.time.temporal.ChronoUnit.DAYS.between(start, end) > WEEKLY_MAX_DAYS;
+        } catch (java.time.format.DateTimeParseException e) {
+            return false;
+        }
+    }
+
+    private List<PopularBookDto> fromLibrary(
+            String startDt, String endDt,
+            String kdc, String dtlKdc,
+            String age, String gender,
+            String region, String dtlRegion,
+            int pageNo, int pageSize) {
         // 인증키 미설정 시 목업 데이터 대신 빈 목록 반환 (가짜 책이 노출되지 않도록)
         if (authKey == null || authKey.isBlank()) {
             log.warn("data4library auth-key 미설정 — 인기 도서 빈 목록 반환");

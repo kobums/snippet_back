@@ -38,6 +38,10 @@ public class Yes24BookClient {
 
     static final String SEARCH_URL = "https://apis.yes24.com/v1/goods/itemList";
     static final String DETAIL_URL = "https://apis.yes24.com/v1/goods/itemDetail";
+    static final String BESTSELLER_URL = "https://apis.yes24.com/v1/category/bestseller";
+    static final String MONTHLY_BESTSELLER_URL = "https://apis.yes24.com/v1/category/bestsellerMonthly";
+    /** 베스트셀러 페이지 크기 상한 (YES24 문서 기준). */
+    static final int MAX_BESTSELLER_PAGE_SIZE = 100;
     /** 세트·전자책·외국도서·성인 도서를 걸러내므로 한 번에 넉넉히 받는다. */
     static final int UPSTREAM_PAGE_SIZE = 50;
     static final int MAX_UPSTREAM_CALLS = 4;
@@ -91,6 +95,48 @@ public class Yes24BookClient {
                 .skip((long) (page - 1) * pageSize)
                 .limit(pageSize)
                 .toList();
+    }
+
+    /** 베스트셀러 한 건 — 순위는 전체 기준 (YES24 sortOrder는 페이지마다 1부터 다시 센다). */
+    public record Bestseller(int rank, Yes24Item item) {
+    }
+
+    /**
+     * 베스트셀러 순위 — 종합(주간) 또는 월별. 도서관정보나루 대출 순위는 필터를 걸면 수십 초씩 걸려 이쪽을 먼저 쓴다.
+     *
+     * @param categoryId YES24 분류 ID (국내도서 전체는 "001")
+     * @param age        연령 필터 (null이면 전체, 10/20/30/40/50/60)
+     * @param sex        성별 필터 (null이면 전체, "M"/"F")
+     * @throws Yes24Failure 호출 실패 (호출 쪽이 다른 출처로 넘어간다)
+     */
+    public List<Bestseller> bestsellers(String categoryId, Integer age, String sex, boolean monthly,
+                                        int page, int pageSize) {
+        if (!isEnabled()) {
+            throw new Yes24Failure("YES24_API_KEY 미설정");
+        }
+        int size = Math.max(1, Math.min(pageSize, MAX_BESTSELLER_PAGE_SIZE));
+        int safePage = Math.max(page, 1);
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(monthly ? MONTHLY_BESTSELLER_URL : BESTSELLER_URL)
+                .queryParam("categoryId", categoryId)
+                .queryParam("detail", "Y")
+                .queryParam("page", safePage)
+                .queryParam("pageSize", size);
+        if (age != null) {
+            builder.queryParam("age", age);
+        }
+        if (sex != null) {
+            builder.queryParam("sex", sex);
+        }
+        JsonNode items = fetch(builder.encode().build().toUri()).path("items");
+        List<Bestseller> result = new java.util.ArrayList<>();
+        int offset = (safePage - 1) * size;
+        for (int i = 0; i < items.size(); i++) {
+            Yes24Item item = toItem(items.get(i));
+            if (item != null) {
+                result.add(new Bestseller(offset + i + 1, item));
+            }
+        }
+        return result;
     }
 
     /** ISBN 상세에서 쪽수·출판일·분류. 없거나 실패하면 비어 있다 (책 추가는 막지 않는다). */
