@@ -74,7 +74,10 @@ com.snippet
   `/api/readingsessions/streak`도 세션 날짜 + 로그 날짜를 합쳐 계산한다
 
 ### AdminCrawlerController (`/api/admin/crawl`)
-- `POST /aladin` - 알라딘 문장 크롤링 (알라딘 OpenAPI 종료로 쪽수·출판사 등 도서 정보 보강 단계는 동작 안 함)
+- `POST /aladin` - 알라딘 웹 '한 문장' 페이지 크롤링. 책 정보(실제 ISBN·표지·쪽수·분류·상품 링크)는 YES24 제목 검색으로 보강
+  (제목이 같고 저자가 겹치는 책 우선, 못 찾으면 페이지의 제목·저자·표지와 임시 ISBN `AL_{상품ID}`)
+- `POST /yes24refresh?dryRun=true` - 기존 book_tb를 YES24 ISBN 상세로 갱신: 알라딘·국립중앙도서관·빈 표지 → YES24 XL 표지,
+  빈 분류·쪽수·상품 링크만 채움(사용자가 고친 값은 유지). 기본 dryRun — 건수·예시만 반환
 
 ### OcrController (`/api/ocr`)
 - `POST /` - Google Cloud Vision API를 통한 OCR 텍스트 추출
@@ -108,8 +111,7 @@ V1~V35까지 적용. `src/main/resources/db/migration/` 참조.
 - `ADMIN_EMAILS` - 관리자 이메일(콤마 구분). 사용자/도서 CRUD는 관리자 전용, 미설정 시 전부 거부
 - `CRAWLER_USER_EMAIL` - 크롤링 문장 작성자 시스템 계정 (기본 crawler@gowoobro.com, V34가 생성·로그인 불가)
 - `NATIONAL_LIBRARY_KEY` - 국립중앙도서관 OpenAPI 인증키 (도서 검색 + 책 추가 시 ISBN 서지정보로 쪽수·출판일 보완).
-  알라딘 OpenAPI는 2026-10-30 서비스 종료(신규 키 발급도 9/4 종료)되어 `ALADIN_API_KEY`는 더 이상 쓰지 않는다.
-  `ALADIN_TTB_KEY`는 크롤러가 기동 시 필수로 읽으므로 남겨둘 것
+  알라딘 OpenAPI는 2026-10-30 서비스 종료(신규 키 발급도 9/4 종료)되어 `ALADIN_API_KEY`·`ALADIN_TTB_KEY`는 더 이상 쓰지 않는다
 - `YES24_API_KEY` - YES24 Open API 키 (도서 검색 1순위, developers.yes24.com 발급 — 키당 초당 10회·일 20,000회). 비우면 국립중앙도서관만 사용
 - `KYOBO_PARTNER_ID`, `YES24_PARTNER_ID` - 제휴 마케팅
 - `CORS_ALLOWED_ORIGINS` - CORS 허용 origin
