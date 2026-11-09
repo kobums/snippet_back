@@ -142,7 +142,8 @@ public class BookSearchService {
         IsbnLookup b = fromNl.get();
         return Optional.of(new IsbnLookup(
                 a.totalPage() != null ? a.totalPage() : b.totalPage(),
-                a.publicationDate() != null ? a.publicationDate() : b.publicationDate()));
+                a.publicationDate() != null ? a.publicationDate() : b.publicationDate(),
+                a.category()));
     }
 
     private Optional<IsbnLookup> lookupNationalLibrary(String isbn) {
@@ -179,8 +180,12 @@ public class BookSearchService {
         }
     }
 
-    /** totalPage·publicationDate는 서지정보에 없으면 null. */
-    public record IsbnLookup(Integer totalPage, LocalDate publicationDate) {
+    /** 각 값은 출처에 없으면 null (category는 YES24에만 있다). */
+    public record IsbnLookup(Integer totalPage, LocalDate publicationDate, String category) {
+
+        public IsbnLookup(Integer totalPage, LocalDate publicationDate) {
+            this(totalPage, publicationDate, null);
+        }
     }
 
     private JsonNode fetchSearchPage(String keyword, int upstreamPage) {

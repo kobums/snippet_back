@@ -133,6 +133,30 @@ class Yes24BookClientTest {
     }
 
     @Test
+    @DisplayName("제목으로 찾을 때 제목이 같고 저자가 겹치는 책을 고른다 (크롤링 문장 보강)")
+    void findByTitlePrefersAuthor() {
+        ObjectNode other = item("데미안", "9788965823223", "데미안 저/정소진 역");
+        ObjectNode hesse = item("데미안", "9788937460449", "헤르만 헤세 저/전영애 역");
+        hesse.put("goodsSortNm", "국내도서-소설/시/희곡");
+        hesse.put("link", "https://www.yes24.com/product/goods/176787");
+        expectSearch(1, 3, item("데미안의 기타교본", "9791196665739", "데미안 저"), other, hesse);
+
+        assertThat(client.findByTitle("데미안", "헤르만 헤세 지음")).hasValueSatisfying(found -> {
+            assertThat(found.book().getIsbn()).isEqualTo("9788937460449");
+            assertThat(found.category()).isEqualTo("국내도서>소설/시/희곡");
+            assertThat(found.link()).isEqualTo("https://www.yes24.com/product/goods/176787");
+        });
+    }
+
+    @Test
+    @DisplayName("제목이 같은 책이 없으면 비어 있다")
+    void findByTitleRequiresSameTitle() {
+        expectSearch(1, 1, item("질문에서 탐구로", "9788999738913", "성명경,데미안 렌툴 저"));
+
+        assertThat(client.findByTitle("데미안", "헤르만 헤세")).isEmpty();
+    }
+
+    @Test
     @DisplayName("키가 없으면 꺼진 상태")
     void disabledWithoutKey() {
         ReflectionTestUtils.setField(client, "apiKey", "");

@@ -90,18 +90,19 @@ public class UserBookService {
                     }
 
                     int pages = (request.getTotalPage() != null) ? request.getTotalPage() : 0;
-                    // 도서 검색(국립중앙도서관 소장자료)은 쪽수를 주지 않고 출판일도 연도뿐인 경우가 많다
-                    if (pages == 0 || pubDate == null) {
-                        BookSearchService.IsbnLookup lookup =
-                                bookSearchService.lookupByIsbn(request.getIsbn()).orElse(null);
-                        if (lookup != null) {
-                            if (pages == 0 && lookup.totalPage() != null) {
-                                pages = lookup.totalPage();
-                            }
-                            if (pubDate == null) {
-                                pubDate = lookup.publicationDate();
-                            }
+                    // 분류는 검색 결과에 없어 새 책이면 항상 조회한다. 국립중앙도서관 검색 결과는 쪽수가 없고
+                    // 출판일도 연도뿐인 경우가 많아 같은 조회로 채운다 (YES24 상세 → ISBN 서지정보)
+                    String category = null;
+                    BookSearchService.IsbnLookup lookup =
+                            bookSearchService.lookupByIsbn(request.getIsbn()).orElse(null);
+                    if (lookup != null) {
+                        if (pages == 0 && lookup.totalPage() != null) {
+                            pages = lookup.totalPage();
                         }
+                        if (pubDate == null) {
+                            pubDate = lookup.publicationDate();
+                        }
+                        category = lookup.category();
                     }
                     if (pubDate == null) {
                         pubDate = LocalDate.of(1970, 1, 1);
@@ -116,6 +117,7 @@ public class UserBookService {
                             .totalPage(pages)
                             .coverUrl(request.getCoverUrl() != null ? request.getCoverUrl() : "")
                             .affiliateUrl("")
+                            .category(category)
                             .build();
                     return bookRepository.save(newBook);
                 });

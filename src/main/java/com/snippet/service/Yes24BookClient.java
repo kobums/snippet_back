@@ -93,8 +93,16 @@ public class Yes24BookClient {
                 .toList();
     }
 
-    /** ISBN 상세에서 쪽수·출판일. 없거나 실패하면 비어 있다 (책 추가는 막지 않는다). */
+    /** ISBN 상세에서 쪽수·출판일·분류. 없거나 실패하면 비어 있다 (책 추가는 막지 않는다). */
     public Optional<BookSearchService.IsbnLookup> lookupByIsbn(String isbn) {
+        return lookupItem(isbn).map(item -> new BookSearchService.IsbnLookup(
+                item.book().getTotalPage() > 0 ? item.book().getTotalPage() : null,
+                NlRecordNormalizer.compactDate(item.book().getPubDate().replace("-", "")),
+                item.category()));
+    }
+
+    /** ISBN 상세 한 건 — 기존 책 정보 갱신용(표지·분류·쪽수·상품 링크). */
+    public Optional<Yes24Item> lookupItem(String isbn) {
         if (!isEnabled() || isbn == null || isbn.isBlank()) {
             return Optional.empty();
         }
@@ -107,17 +115,76 @@ public class Yes24BookClient {
                     .buildAndExpand(isbn.trim())
                     .toUri();
             JsonNode item = fetch(uri).path("items").path(0);
-            if (item.isMissingNode()) {
-                return Optional.empty();
-            }
-            int pages = item.path("pages").asInt(0);
-            return Optional.of(new BookSearchService.IsbnLookup(
-                    pages > 0 ? pages : null,
-                    NlRecordNormalizer.compactDate(item.path("publishDate").asText(""))));
+            return item.isMissingNode() ? Optional.empty() : Optional.ofNullable(toItem(item));
         } catch (Yes24Failure e) {
             log.warn("YES24 ISBN 상세 조회 실패: isbn={} {}", isbn, e.getMessage());
             return Optional.empty();
         }
+    }
+
+    /**
+     * 제목(+저자)으로 책 한 권을 찾는다 — ISBN을 모르는 크롤링 문장의 책 정보 보강용.
+     * 제목이 공백·문장부호를 빼고 같은 책 중 저자 이름이 겹치는 것을 우선하고, 제목이 같은 책이 없으면 비어 있다.
+     */
+    public Optional<Yes24Item> findByTitle(String title, String author) {
+        if (!isEnabled() || title == null || title.isBlank()) {
+            return Optional.empty();
+        }
+        JsonNode items;
+        try {
+            items = fetchSearchPage(title.trim(), 1).path("items");
+        } catch (Yes24Failure e) {
+            log.warn("YES24 제목 검색 실패: title='{}' {}", title, e.getMessage());
+            return Optional.empty();
+        }
+        String wantedTitle = compact(title);
+        String wantedAuthor = author == null ? "" : compact(author);
+        Yes24Item sameTitle = null;
+        for (JsonNode node : items) {
+            Yes24Item item = toItem(node);
+            if (item == null || !compact(item.book().getTitle()).equals(wantedTitle)) {
+                continue;
+            }
+            if (!wantedAuthor.isEmpty() && sharesName(node.path("author").asText(""), wantedAuthor)) {
+                return Optional.of(item);
+            }
+            if (sameTitle == null) {
+                sameTitle = item;
+            }
+        }
+        return Optional.ofNullable(sameTitle);
+    }
+
+    /** "정세랑 지음" vs "정세랑 저" — 역할 단어를 떼고 이름 하나라도 겹치면 같은 저자로 본다. */
+    private static boolean sharesName(String yes24Author, String wantedAuthor) {
+        for (String part : yes24Author.split("[/,]")) {
+            String name = compact(part.replaceAll("\\s+(저|글|지음|역|옮김|그림|편|엮음|감수|원작)$", ""));
+            if (name.length() >= 2 && wantedAuthor.contains(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String compact(String text) {
+        return text.replaceAll("[\\s\\p{Punct}·:：]", "").toLowerCase();
+    }
+
+    /** YES24 상품 한 건 — 검색 결과 형식 + 분류("국내도서>소설/시/희곡")·상품 링크. */
+    public record Yes24Item(BookSearchDto book, String category, String link) {
+    }
+
+    static Yes24Item toItem(JsonNode item) {
+        BookSearchDto book = toDto(item);
+        if (book == null) {
+            return null;
+        }
+        // book_tb.b_category는 50자, 알라딘 시절 형식처럼 ">"로 잇는다
+        String category = item.path("goodsSortNm").asText("").trim().replace("-", ">");
+        if (category.length() > 50) {
+            category = category.substring(0, 50);
+        }
+        return new Yes24Item(book, category.isEmpty() ? null : category, item.path("link").asText(""));
     }
 
     /** 세트(ISBN 없음)·외국도서·성인 도서는 뺀다. 알라딘 시절에도 외국도서·eBook은 검색에서 뺐다. */
